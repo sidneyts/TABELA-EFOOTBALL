@@ -1867,54 +1867,60 @@ body {
   margin-bottom: 4px;
 }
 
-/* Desempate por Pênaltis */
-.penalty-decision-bar {
+/* Desempate por Pênaltis (Placar Numérico da Disputa) */
+.penalty-shootout-box {
   display: flex;
   flex-direction: column;
   gap: 8px;
-  background: rgba(255, 190, 26, 0.08);
-  border: 1px dashed rgba(255, 190, 26, 0.4);
+  background: linear-gradient(135deg, rgba(255, 190, 26, 0.1), rgba(255, 140, 0, 0.08));
+  border: 1px dashed rgba(255, 190, 26, 0.5);
   border-radius: var(--radius-sm);
-  padding: 10px 12px;
-  margin-top: 4px;
+  padding: 12px 14px;
+  margin-top: 6px;
+}
+
+.penalty-shootout-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
 }
 
 .penalty-label {
   font-size: 0.78rem;
-  font-weight: 700;
+  font-weight: 800;
   color: var(--accent-gold);
-  text-align: center;
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
 }
 
-.penalty-btns-row {
-  display: flex;
-  gap: 8px;
-  justify-content: center;
+.penalty-score-wrapper .score-control {
+  border-color: rgba(255, 190, 26, 0.45);
+  background: rgba(20, 16, 8, 0.85);
 }
 
-.btn-penalty-pick {
-  flex: 1;
-  background: rgba(255, 255, 255, 0.07);
-  border: 1px solid rgba(255, 255, 255, 0.18);
-  color: var(--text-main);
+.penalty-score-input {
+  color: var(--accent-gold) !important;
+}
+
+.btn-toggle-penalties {
+  background: rgba(255, 190, 26, 0.12);
+  border: 1px solid rgba(255, 190, 26, 0.35);
+  color: var(--accent-gold);
   font-family: var(--font-body);
-  font-size: 0.8rem;
+  font-size: 0.74rem;
   font-weight: 700;
-  padding: 6px 10px;
-  border-radius: var(--radius-sm);
+  padding: 3px 10px;
+  border-radius: var(--radius-full);
   cursor: pointer;
-  transition: all 0.2s;
+  transition: all 0.2s ease;
 }
 
-.btn-penalty-pick:hover {
+.btn-toggle-penalties:hover {
+  background: rgba(255, 190, 26, 0.24);
   border-color: var(--accent-gold);
   color: #ffffff;
-}
-
-.btn-penalty-pick.active-penalty-winner {
-  background: linear-gradient(135deg, #ffd700, #ff9900);
-  color: #1a1200;
-  border-color: #ffd700;
 }
 
 /* ========================================================= */

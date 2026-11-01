@@ -51,7 +51,7 @@ const DEFAULT_MATCHES_4 = [
 let players = [];
 let matches = [];
 let tournamentHistory = [];
-let knockoutState = { format: 'single', ties: [] };
+let knockoutState = { format: 'two_legs', ties: [] };
 let currentUser = '';
 let lastUpdatedBy = '';
 let currentFilter = 'all'; // 'all', 'turno', 'returno'
@@ -141,12 +141,37 @@ function loadLocalBackup() {
     try {
       const parsedKO = JSON.parse(storedKnockout);
       if (parsedKO && Array.isArray(parsedKO.ties)) {
-        knockoutState = parsedKO;
+        knockoutState = normalizeKnockoutState(parsedKO);
       }
     } catch (e) {
-      knockoutState = { format: 'single', ties: [] };
+      knockoutState = { format: 'two_legs', ties: [] };
     }
   }
+}
+
+function normalizeKnockoutState(ko) {
+  if (!ko || !Array.isArray(ko.ties)) {
+    return { format: 'two_legs', ties: [] };
+  }
+  let fmt = ko.format || 'two_legs';
+  // Se o sorteio anterior foi salvo antes de existir o campo penHome, garante suporte a 2 jogos + pênaltis
+  if (ko.ties.length > 0 && !('penHome' in ko.ties[0])) {
+    fmt = 'two_legs';
+  }
+  const normalizedTies = ko.ties.map(t => ({
+    ...t,
+    leg1Home: t.leg1Home !== undefined ? t.leg1Home : null,
+    leg1Away: t.leg1Away !== undefined ? t.leg1Away : null,
+    leg2Home: t.leg2Home !== undefined ? t.leg2Home : null,
+    leg2Away: t.leg2Away !== undefined ? t.leg2Away : null,
+    penHome: t.penHome !== undefined ? t.penHome : null,
+    penAway: t.penAway !== undefined ? t.penAway : null,
+    showPenalties: Boolean(t.showPenalties)
+  }));
+  return {
+    format: fmt,
+    ties: normalizedTies
+  };
 }
 
 function initDefaultSchedule() {
@@ -219,8 +244,9 @@ function initFirebaseRealtime() {
         }
 
         if (cloudData.knockout && Array.isArray(cloudData.knockout.ties)) {
-          if (JSON.stringify(cloudData.knockout) !== JSON.stringify(knockoutState)) {
-            knockoutState = cloudData.knockout;
+          const normalizedCloudKO = normalizeKnockoutState(cloudData.knockout);
+          if (JSON.stringify(normalizedCloudKO) !== JSON.stringify(knockoutState)) {
+            knockoutState = normalizedCloudKO;
             shouldReRender = true;
           }
         }
@@ -1468,7 +1494,7 @@ function startKnockoutDrawAnimation() {
   const animArea = document.getElementById('drawAnimationArea');
   const shuffleNamesEl = document.getElementById('drawShuffleNames');
   const formatSelect = document.getElementById('selectKnockoutFormat');
-  const selectedFormat = formatSelect ? formatSelect.value : 'single';
+  const selectedFormat = formatSelect ? formatSelect.value : 'two_legs';
 
   if (!animArea || !shuffleNamesEl) {
     executeKnockoutDraw(selectedFormat);
@@ -1518,7 +1544,10 @@ function executeKnockoutDraw(format) {
       leg1Away: null,
       leg2Home: null,
       leg2Away: null,
-      penaltyWinner: null
+      penHome: null,
+      penAway: null,
+      penaltyWinner: null,
+      showPenalties: false
     });
 
     ties.push({
@@ -1532,7 +1561,10 @@ function executeKnockoutDraw(format) {
       leg1Away: p4.startsWith('BYE') ? 0 : null,
       leg2Home: p4.startsWith('BYE') ? 0 : null,
       leg2Away: p4.startsWith('BYE') ? 0 : null,
-      penaltyWinner: null
+      penHome: null,
+      penAway: null,
+      penaltyWinner: null,
+      showPenalties: false
     });
 
     ties.push({
@@ -1546,7 +1578,10 @@ function executeKnockoutDraw(format) {
       leg1Away: null,
       leg2Home: null,
       leg2Away: null,
-      penaltyWinner: null
+      penHome: null,
+      penAway: null,
+      penaltyWinner: null,
+      showPenalties: false
     });
 
     ties.push({
@@ -1560,7 +1595,10 @@ function executeKnockoutDraw(format) {
       leg1Away: null,
       leg2Home: null,
       leg2Away: null,
-      penaltyWinner: null
+      penHome: null,
+      penAway: null,
+      penaltyWinner: null,
+      showPenalties: false
     });
   } else {
     // Até 8 jogadores: Quartas de Final -> Semifinais -> 3º Lugar -> Final
@@ -1592,7 +1630,10 @@ function executeKnockoutDraw(format) {
         leg1Away: isBye ? 0 : null,
         leg2Home: isBye ? 0 : null,
         leg2Away: isBye ? 0 : null,
-        penaltyWinner: null
+        penHome: null,
+        penAway: null,
+        penaltyWinner: null,
+        showPenalties: false
       });
     });
 
@@ -1607,7 +1648,10 @@ function executeKnockoutDraw(format) {
       leg1Away: null,
       leg2Home: null,
       leg2Away: null,
-      penaltyWinner: null
+      penHome: null,
+      penAway: null,
+      penaltyWinner: null,
+      showPenalties: false
     });
 
     ties.push({
@@ -1621,7 +1665,10 @@ function executeKnockoutDraw(format) {
       leg1Away: null,
       leg2Home: null,
       leg2Away: null,
-      penaltyWinner: null
+      penHome: null,
+      penAway: null,
+      penaltyWinner: null,
+      showPenalties: false
     });
 
     ties.push({
@@ -1635,7 +1682,10 @@ function executeKnockoutDraw(format) {
       leg1Away: null,
       leg2Home: null,
       leg2Away: null,
-      penaltyWinner: null
+      penHome: null,
+      penAway: null,
+      penaltyWinner: null,
+      showPenalties: false
     });
 
     ties.push({
@@ -1649,12 +1699,15 @@ function executeKnockoutDraw(format) {
       leg1Away: null,
       leg2Home: null,
       leg2Away: null,
-      penaltyWinner: null
+      penHome: null,
+      penAway: null,
+      penaltyWinner: null,
+      showPenalties: false
     });
   }
 
   knockoutState = {
-    format: format || 'single',
+    format: format || 'two_legs',
     ties: ties
   };
 
@@ -1676,19 +1729,29 @@ function isPlaceholderTeam(name) {
 
 function resolveTieOutcome(tie, format) {
   if (!tie || isPlaceholderTeam(tie.home) || isPlaceholderTeam(tie.away)) {
-    return { winner: null, loser: null, isDrawPending: false, homeTotal: null, awayTotal: null };
+    return {
+      winner: null,
+      loser: null,
+      isDrawPending: false,
+      homeTotal: null,
+      awayTotal: null,
+      decidedByPenalties: false,
+      penHome: null,
+      penAway: null,
+      allLegsPlayed: false
+    };
   }
 
   if (tie.away.startsWith('BYE')) {
-    return { winner: tie.home, loser: tie.away, isDrawPending: false, homeTotal: 1, awayTotal: 0 };
+    return { winner: tie.home, loser: tie.away, isDrawPending: false, homeTotal: 1, awayTotal: 0, decidedByPenalties: false, penHome: null, penAway: null, allLegsPlayed: true };
   }
   if (tie.home.startsWith('BYE')) {
-    return { winner: tie.away, loser: tie.home, isDrawPending: false, homeTotal: 0, awayTotal: 1 };
+    return { winner: tie.away, loser: tie.home, isDrawPending: false, homeTotal: 0, awayTotal: 1, decidedByPenalties: false, penHome: null, penAway: null, allLegsPlayed: true };
   }
 
   const hasLeg1 = tie.leg1Home !== null && tie.leg1Away !== null && !isNaN(tie.leg1Home) && !isNaN(tie.leg1Away);
   if (!hasLeg1) {
-    return { winner: null, loser: null, isDrawPending: false, homeTotal: null, awayTotal: null };
+    return { winner: null, loser: null, isDrawPending: false, homeTotal: null, awayTotal: null, decidedByPenalties: false, penHome: null, penAway: null, allLegsPlayed: false };
   }
 
   let homeTotal = parseInt(tie.leg1Home, 10);
@@ -1697,31 +1760,80 @@ function resolveTieOutcome(tie, format) {
   if (format === 'two_legs') {
     const hasLeg2 = tie.leg2Home !== null && tie.leg2Away !== null && !isNaN(tie.leg2Home) && !isNaN(tie.leg2Away);
     if (!hasLeg2) {
-      return { winner: null, loser: null, isDrawPending: false, homeTotal, awayTotal };
+      return { winner: null, loser: null, isDrawPending: false, homeTotal, awayTotal, decidedByPenalties: false, penHome: null, penAway: null, allLegsPlayed: false };
     }
     homeTotal += parseInt(tie.leg2Home, 10);
     awayTotal += parseInt(tie.leg2Away, 10);
   }
 
-  if (homeTotal > awayTotal) {
-    return { winner: tie.home, loser: tie.away, isDrawPending: false, homeTotal, awayTotal };
-  } else if (awayTotal > homeTotal) {
-    return { winner: tie.away, loser: tie.home, isDrawPending: false, homeTotal, awayTotal };
-  } else {
-    // Empate no placar ou agregado -> decide nos pênaltis
-    if (tie.penaltyWinner === 'home') {
-      return { winner: tie.home, loser: tie.away, isDrawPending: false, homeTotal, awayTotal };
-    } else if (tie.penaltyWinner === 'away') {
-      return { winner: tie.away, loser: tie.home, isDrawPending: false, homeTotal, awayTotal };
+  const hasPenScores =
+    tie.penHome !== null && tie.penHome !== undefined &&
+    tie.penAway !== null && tie.penAway !== undefined &&
+    !isNaN(tie.penHome) && !isNaN(tie.penAway);
+
+  // Se houver disputa de pênaltis preenchida (por empate nos jogos ou ativada manualmente)
+  if (hasPenScores) {
+    const ph = parseInt(tie.penHome, 10);
+    const pa = parseInt(tie.penAway, 10);
+    if (ph > pa) {
+      return {
+        winner: tie.home,
+        loser: tie.away,
+        isDrawPending: false,
+        homeTotal,
+        awayTotal,
+        decidedByPenalties: true,
+        penHome: ph,
+        penAway: pa,
+        allLegsPlayed: true
+      };
+    } else if (pa > ph) {
+      return {
+        winner: tie.away,
+        loser: tie.home,
+        isDrawPending: false,
+        homeTotal,
+        awayTotal,
+        decidedByPenalties: true,
+        penHome: ph,
+        penAway: pa,
+        allLegsPlayed: true
+      };
+    } else if (homeTotal === awayTotal || tie.showPenalties) {
+      // Pênaltis ainda empatados (ex: 0 x 0 enquanto digita)
+      return {
+        winner: null,
+        loser: null,
+        isDrawPending: true,
+        homeTotal,
+        awayTotal,
+        decidedByPenalties: false,
+        penHome: ph,
+        penAway: pa,
+        allLegsPlayed: true
+      };
     }
-    return { winner: null, loser: null, isDrawPending: true, homeTotal, awayTotal };
+  }
+
+  if (homeTotal > awayTotal) {
+    return { winner: tie.home, loser: tie.away, isDrawPending: false, homeTotal, awayTotal, decidedByPenalties: false, penHome: null, penAway: null, allLegsPlayed: true };
+  } else if (awayTotal > homeTotal) {
+    return { winner: tie.away, loser: tie.home, isDrawPending: false, homeTotal, awayTotal, decidedByPenalties: false, penHome: null, penAway: null, allLegsPlayed: true };
+  } else {
+    // Empate nos dois jogos (ou no jogo único) -> abre campos da Disputa de Pênaltis
+    if (tie.penaltyWinner === 'home') {
+      return { winner: tie.home, loser: tie.away, isDrawPending: false, homeTotal, awayTotal, decidedByPenalties: true, penHome: null, penAway: null, allLegsPlayed: true };
+    } else if (tie.penaltyWinner === 'away') {
+      return { winner: tie.away, loser: tie.home, isDrawPending: false, homeTotal, awayTotal, decidedByPenalties: true, penHome: null, penAway: null, allLegsPlayed: true };
+    }
+    return { winner: null, loser: null, isDrawPending: true, homeTotal, awayTotal, decidedByPenalties: false, penHome: null, penAway: null, allLegsPlayed: true };
   }
 }
 
 function propagateKnockoutBracket() {
   if (!knockoutState || !Array.isArray(knockoutState.ties) || knockoutState.ties.length === 0) return;
 
-  const fmt = knockoutState.format || 'single';
+  const fmt = knockoutState.format || 'two_legs';
   const findTie = (id) => knockoutState.ties.find(t => t.id === id);
 
   // Propaga Quartas -> Semifinais (se houver Quartas)
@@ -1814,7 +1926,7 @@ function renderKnockoutView() {
     return;
   }
 
-  const fmt = knockoutState.format || 'single';
+  const fmt = knockoutState.format || 'two_legs';
 
   // Verifica se a Grande Final tem campeão
   const finalTie = knockoutState.ties.find(t => t.id === 'final');
@@ -1848,7 +1960,7 @@ function renderKnockoutView() {
 
     const stageTitle = stageTies[0].stageTitle;
     const tagClass = stId === 'final' ? 'tag-final' : stId === 'semi' ? 'tag-turno' : 'tag-returno';
-    const tagText = fmt === 'two_legs' ? 'Ida e Volta' : 'Jogo Único';
+    const tagText = fmt === 'two_legs' ? 'Ida e Volta (2 Jogos)' : 'Jogo Único';
 
     let tiesHtml = '';
 
@@ -1858,21 +1970,39 @@ function renderKnockoutView() {
       const awayWinner = outcome.winner === t.away ? 'team-is-winner' : '';
       const hasWinnerClass = outcome.winner ? 'has-winner' : '';
 
-      const l1h = t.leg1Home !== null ? t.leg1Home : '';
-      const l1a = t.leg1Away !== null ? t.leg1Away : '';
-      const l2h = t.leg2Home !== null ? t.leg2Home : '';
-      const l2a = t.leg2Away !== null ? t.leg2Away : '';
+      const l1h = t.leg1Home !== null && t.leg1Home !== undefined ? t.leg1Home : '';
+      const l1a = t.leg1Away !== null && t.leg1Away !== undefined ? t.leg1Away : '';
+      const l2h = t.leg2Home !== null && t.leg2Home !== undefined ? t.leg2Home : '';
+      const l2a = t.leg2Away !== null && t.leg2Away !== undefined ? t.leg2Away : '';
+      const ph = t.penHome !== null && t.penHome !== undefined ? t.penHome : '';
+      const pa = t.penAway !== null && t.penAway !== undefined ? t.penAway : '';
+
+      const isRealTeams = !isPlaceholderTeam(t.home) && !isPlaceholderTeam(t.away) && !t.home.startsWith('BYE') && !t.away.startsWith('BYE');
+      const showPenaltyBox = isRealTeams && (
+        outcome.isDrawPending ||
+        outcome.decidedByPenalties ||
+        t.penHome !== null ||
+        t.penAway !== null ||
+        t.showPenalties
+      );
 
       let statusText = '• Aguardando resultado';
       if (outcome.winner) {
-        statusText = `✓ Classificado / Vencedor: ${outcome.winner}`;
+        statusText = `✓ Classificado: ${outcome.winner}`;
       } else if (outcome.isDrawPending) {
-        statusText = '⚠️ Empate! Selecione quem venceu nos pênaltis abaixo';
+        statusText = '⚠️ Empate nos jogos! Preencha o placar dos pênaltis acima';
       }
+
+      const aggSummary = (fmt === 'two_legs' && outcome.homeTotal !== null)
+        ? ` (Agregado: ${outcome.homeTotal} x ${outcome.awayTotal})`
+        : '';
+      const penSummary = (outcome.decidedByPenalties && outcome.penHome !== null && outcome.penAway !== null)
+        ? ` • Pênaltis: ${outcome.penHome} x ${outcome.penAway}`
+        : '';
 
       tiesHtml += `
         <div class="knockout-tie-box ${hasWinnerClass}">
-          <div class="knockout-leg-label">${t.label} ${fmt === 'two_legs' ? '• Jogo de Ida' : ''}</div>
+          <div class="knockout-leg-label">${t.label} ${fmt === 'two_legs' ? '• 1º Jogo (Ida)' : ''}</div>
           <div class="match-row">
             <div class="team-box team-home ${homeWinner}">
               <span class="team-name" title="${t.home}">${t.home}</span>
@@ -1916,7 +2046,7 @@ function renderKnockoutView() {
           </div>
 
           ${fmt === 'two_legs' ? `
-            <div class="knockout-leg-label" style="margin-top: 6px;">Jogo de Volta (Placar de ${t.home} vs ${t.away})</div>
+            <div class="knockout-leg-label" style="margin-top: 6px;">2º Jogo (Volta) • Placar de ${t.home} vs ${t.away}</div>
             <div class="match-row">
               <div class="team-box team-home ${homeWinner}">
                 <span class="team-name" title="${t.home}">${t.home}</span>
@@ -1960,32 +2090,67 @@ function renderKnockoutView() {
             </div>
           ` : ''}
 
-          ${(outcome.isDrawPending || t.penaltyWinner) && !isPlaceholderTeam(t.home) && !isPlaceholderTeam(t.away) ? `
-            <div class="penalty-decision-bar">
-              <span class="penalty-label">⚽ Empate no Placar! Quem venceu nos Pênaltis?</span>
-              <div class="penalty-btns-row">
-                <button
-                  type="button"
-                  class="btn-penalty-pick ${t.penaltyWinner === 'home' ? 'active-penalty-winner' : ''}"
-                  onclick="setKnockoutPenaltyWinner('${t.id}', 'home')"
-                >
-                  🏆 ${t.home}
-                </button>
-                <button
-                  type="button"
-                  class="btn-penalty-pick ${t.penaltyWinner === 'away' ? 'active-penalty-winner' : ''}"
-                  onclick="setKnockoutPenaltyWinner('${t.id}', 'away')"
-                >
-                  🏆 ${t.away}
-                </button>
+          ${showPenaltyBox ? `
+            <div class="penalty-shootout-box">
+              <div class="penalty-shootout-header">
+                <span class="penalty-label">⚽ Disputa de Pênaltis (${fmt === 'two_legs' ? '2º Jogo / Desempate' : 'Desempate'})</span>
+                ${(t.penHome !== null || t.penAway !== null || t.showPenalties) ? `
+                  <button type="button" class="btn-clear-score" onclick="clearKnockoutPenalties('${t.id}')">Limpar pênaltis</button>
+                ` : ''}
+              </div>
+              <div class="match-row">
+                <div class="team-box team-home ${homeWinner}">
+                  <span class="team-name" title="${t.home}">${t.home}</span>
+                </div>
+
+                <div class="score-box-wrapper penalty-score-wrapper">
+                  <div class="score-control">
+                    <button type="button" class="score-btn" onclick="adjustKnockoutScore('${t.id}', 'penHome', -1)">−</button>
+                    <input
+                      type="number"
+                      min="0"
+                      max="99"
+                      class="score-input ko-score-input penalty-score-input"
+                      data-tie-id="${t.id}"
+                      data-field="penHome"
+                      placeholder="P"
+                      value="${ph}"
+                    />
+                    <button type="button" class="score-btn" onclick="adjustKnockoutScore('${t.id}', 'penHome', 1)">+</button>
+                  </div>
+                  <span class="score-vs-divider">x</span>
+                  <div class="score-control">
+                    <button type="button" class="score-btn" onclick="adjustKnockoutScore('${t.id}', 'penAway', -1)">−</button>
+                    <input
+                      type="number"
+                      min="0"
+                      max="99"
+                      class="score-input ko-score-input penalty-score-input"
+                      data-tie-id="${t.id}"
+                      data-field="penAway"
+                      placeholder="P"
+                      value="${pa}"
+                    />
+                    <button type="button" class="score-btn" onclick="adjustKnockoutScore('${t.id}', 'penAway', 1)">+</button>
+                  </div>
+                </div>
+
+                <div class="team-box team-away ${awayWinner}">
+                  <span class="team-name" title="${t.away}">${t.away}</span>
+                </div>
               </div>
             </div>
           ` : ''}
 
           <div class="match-status-bar">
             <span class="match-status-text ${outcome.winner ? 'status-finished' : ''}">
-              ${statusText} ${fmt === 'two_legs' && outcome.homeTotal !== null ? `(Agregado: ${outcome.homeTotal} x ${outcome.awayTotal})` : ''}
+              ${statusText}${aggSummary}${penSummary}
             </span>
+            ${(isRealTeams && outcome.allLegsPlayed && !showPenaltyBox) ? `
+              <button type="button" class="btn-toggle-penalties" onclick="toggleKnockoutPenalties('${t.id}')">
+                ⚽ + Disputa de Pênaltis
+              </button>
+            ` : ''}
           </div>
         </div>
       `;
@@ -2019,11 +2184,14 @@ window.adjustKnockoutScore = function(tieId, field, delta) {
   }
 
   if (field.startsWith('leg1')) {
-    if (tie.leg1Home === null) tie.leg1Home = 0;
-    if (tie.leg1Away === null) tie.leg1Away = 0;
-  } else {
-    if (tie.leg2Home === null) tie.leg2Home = 0;
-    if (tie.leg2Away === null) tie.leg2Away = 0;
+    if (tie.leg1Home === null || tie.leg1Home === undefined) tie.leg1Home = 0;
+    if (tie.leg1Away === null || tie.leg1Away === undefined) tie.leg1Away = 0;
+  } else if (field.startsWith('leg2')) {
+    if (tie.leg2Home === null || tie.leg2Home === undefined) tie.leg2Home = 0;
+    if (tie.leg2Away === null || tie.leg2Away === undefined) tie.leg2Away = 0;
+  } else if (field.startsWith('pen')) {
+    if (tie.penHome === null || tie.penHome === undefined) tie.penHome = 0;
+    if (tie.penAway === null || tie.penAway === undefined) tie.penAway = 0;
   }
 
   let nextVal = (tie[field] || 0) + delta;
@@ -2052,21 +2220,48 @@ function handleKnockoutDirectInput(e) {
     if (isNaN(val) || val < 0) val = 0;
     if (val > 99) val = 99;
     tie[field] = val;
-    if (field === 'leg1Home' && tie.leg1Away === null) tie.leg1Away = 0;
-    if (field === 'leg1Away' && tie.leg1Home === null) tie.leg1Home = 0;
-    if (field === 'leg2Home' && tie.leg2Away === null) tie.leg2Away = 0;
-    if (field === 'leg2Away' && tie.leg2Home === null) tie.leg2Home = 0;
+    if (field === 'leg1Home' && (tie.leg1Away === null || tie.leg1Away === undefined)) tie.leg1Away = 0;
+    if (field === 'leg1Away' && (tie.leg1Home === null || tie.leg1Home === undefined)) tie.leg1Home = 0;
+    if (field === 'leg2Home' && (tie.leg2Away === null || tie.leg2Away === undefined)) tie.leg2Away = 0;
+    if (field === 'leg2Away' && (tie.leg2Home === null || tie.leg2Home === undefined)) tie.leg2Home = 0;
+    if (field === 'penHome' && (tie.penAway === null || tie.penAway === undefined)) tie.penAway = 0;
+    if (field === 'penAway' && (tie.penHome === null || tie.penHome === undefined)) tie.penHome = 0;
   }
 
   tie.penaltyWinner = null;
   propagateKnockoutBracket();
+  renderKnockoutView();
+
+  // Mantém o foco no campo que o usuário está digitando
+  const container = document.getElementById('knockoutBracketContainer');
+  if (container) {
+    const newInput = container.querySelector(`.ko-score-input[data-tie-id="${tieId}"][data-field="${field}"]`);
+    if (newInput) {
+      newInput.focus();
+    }
+  }
+
   syncToCloud(false);
 }
 
-window.setKnockoutPenaltyWinner = function(tieId, side) {
+window.toggleKnockoutPenalties = function(tieId) {
   const tie = knockoutState.ties.find(t => t.id === tieId);
   if (!tie) return;
-  tie.penaltyWinner = side;
+  tie.showPenalties = true;
+  if (tie.penHome === null || tie.penHome === undefined) tie.penHome = 0;
+  if (tie.penAway === null || tie.penAway === undefined) tie.penAway = 0;
+  propagateKnockoutBracket();
+  renderKnockoutView();
+  syncToCloud(true);
+};
+
+window.clearKnockoutPenalties = function(tieId) {
+  const tie = knockoutState.ties.find(t => t.id === tieId);
+  if (!tie) return;
+  tie.penHome = null;
+  tie.penAway = null;
+  tie.penaltyWinner = null;
+  tie.showPenalties = false;
   propagateKnockoutBracket();
   renderKnockoutView();
   syncToCloud(true);
@@ -2078,15 +2273,18 @@ function copyKnockoutForWhatsApp() {
     return;
   }
 
-  const fmt = knockoutState.format || 'single';
+  const fmt = knockoutState.format || 'two_legs';
   let text = `⚡ *CHAVEAMENTO MATA-MATA eFOOTBALL* 🏆\n\n`;
 
   knockoutState.ties.forEach(t => {
     const out = resolveTieOutcome(t, fmt);
     const s1 = t.leg1Home !== null && t.leg1Away !== null ? `${t.leg1Home} x ${t.leg1Away}` : 'vs';
-    const s2 = fmt === 'two_legs' && t.leg2Home !== null && t.leg2Away !== null ? ` (Volta: ${t.leg2Home} x ${t.leg2Away})` : '';
+    const s2 = fmt === 'two_legs' && t.leg2Home !== null && t.leg2Away !== null ? ` (2º Jogo: ${t.leg2Home} x ${t.leg2Away})` : '';
+    const sPen = out.decidedByPenalties && out.penHome !== null && out.penAway !== null
+      ? ` [Pênaltis: ${out.penHome} x ${out.penAway}]`
+      : '';
     const winTag = out.winner ? ` ➔ ✅ *${out.winner}*` : '';
-    text += `🔹 *${t.label}:* ${t.home} ${s1} ${t.away}${s2}${winTag}\n`;
+    text += `🔹 *${t.label}:* ${t.home} ${s1} ${t.away}${s2}${sPen}${winTag}\n`;
   });
 
   const finalTie = knockoutState.ties.find(t => t.id === 'final');
@@ -2394,15 +2592,18 @@ window.openHistoryDetailModal = function(historyId) {
   subEl.textContent = `Concluído em ${item.date} • Campeão: ${item.champion}`;
 
   if (item.mode === 'knockout' && item.knockoutSnapshot) {
-    const fmt = item.knockoutSnapshot.format || 'single';
+    const fmt = item.knockoutSnapshot.format || 'two_legs';
     let koHtml = '<div class="detail-matches-list">';
     (item.knockoutSnapshot.ties || []).forEach(t => {
       const s1 = t.leg1Home !== null && t.leg1Away !== null ? `${t.leg1Home} x ${t.leg1Away}` : '-';
-      const s2 = fmt === 'two_legs' && t.leg2Home !== null && t.leg2Away !== null ? ` (Volta: ${t.leg2Home} x ${t.leg2Away})` : '';
+      const s2 = fmt === 'two_legs' && t.leg2Home !== null && t.leg2Away !== null ? ` (2º Jogo: ${t.leg2Home} x ${t.leg2Away})` : '';
+      const sPen = t.penHome !== null && t.penHome !== undefined && t.penAway !== null && t.penAway !== undefined
+        ? ` [Pên: ${t.penHome} x ${t.penAway}]`
+        : '';
       koHtml += `
         <div class="detail-match-pill">
           <span><strong>${t.label}:</strong> ${t.home} vs ${t.away}</span>
-          <strong style="color: var(--accent-cyan);">${s1}${s2}</strong>
+          <strong style="color: var(--accent-cyan);">${s1}${s2}${sPen}</strong>
         </div>
       `;
     });
