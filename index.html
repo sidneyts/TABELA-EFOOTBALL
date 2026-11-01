@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>eFootball League - Campeonato dos Amigos</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Teko:wght@600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js" defer></script>
+</head>
+<body>
+  <div class="app-background">
+    <div class="glow glow-1"></div>
+    <div class="glow glow-2"></div>
+    <div class="glow glow-3"></div>
+  </div>
+
+  <div class="container">
+    <!-- Header -->
+    <header class="header">
+      <div class="header-brand">
+        <div class="logo-badge">
+          <span class="badge-icon">⚽</span>
+          <span class="badge-tag">eFOOTBALL</span>
+        </div>
+        <h1 class="main-title">CAMPEONATO DE PONTOS CORRIDOS</h1>
+        <p class="subtitle">4 Jogadores • 6 Rodadas (Turno e Returno) • Vitória = 3 pts | Empate = 1 pt</p>
+      </div>
+
+      <div class="header-actions">
+        <button id="btnShareWhatsApp" class="btn btn-secondary" title="Copiar classificação para WhatsApp">
+          <span class="btn-icon">📋</span>
+          <span>Copiar Classificação</span>
+        </button>
+        <button id="btnResetTournament" class="btn btn-danger-outline" title="Zerar e iniciar novo campeonato">
+          <span class="btn-icon">🔄</span>
+          <span>Zerar Tabela</span>
+        </button>
+      </div>
+    </header>
+
+    <!-- Banner do Campeão (exibido quando definido) -->
+    <section id="championBanner" class="champion-banner hidden">
+      <div class="trophy-glow">🏆</div>
+      <div class="champion-content">
+        <span class="champion-tag">CAMPEÃO DO TORNEIO</span>
+        <h2 id="championName" class="champion-name">SIDNEY</h2>
+        <p id="championDetails" class="champion-details">Completou as 6 rodadas no topo da tabela!</p>
+      </div>
+      <button id="btnCelebration" class="btn btn-gold">
+        <span>🎉 Soltar Confetes</span>
+      </button>
+    </section>
+
+    <!-- Grid Principal: Tabela e Estatísticas -->
+    <main class="content-grid">
+      <!-- Coluna da Tabela de Classificação -->
+      <section class="card table-card">
+        <div class="card-header">
+          <div class="card-title-group">
+            <span class="card-icon">📊</span>
+            <div>
+              <h2 class="card-title">Tabela de Classificação</h2>
+              <span class="card-subtitle">Atualizada automaticamente a cada gol</span>
+            </div>
+          </div>
+          <div class="progress-pill">
+            <span id="tournamentProgressText">0 / 12 Jogos</span>
+            <div class="progress-bar-bg">
+              <div id="tournamentProgressBar" class="progress-bar-fill" style="width: 0%"></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="table-responsive">
+          <table class="standings-table">
+            <thead>
+              <tr>
+                <th class="th-pos">#</th>
+                <th class="th-player">Jogador</th>
+                <th class="th-num" title="Pontos">PTS</th>
+                <th class="th-num" title="Jogos">J</th>
+                <th class="th-num" title="Vitórias">V</th>
+                <th class="th-num" title="Empates">E</th>
+                <th class="th-num" title="Derrotas">D</th>
+                <th class="th-num" title="Gols Pró">GP</th>
+                <th class="th-num" title="Gols Contra">GC</th>
+                <th class="th-num" title="Saldo de Gols">SG</th>
+                <th class="th-num" title="Aproveitamento">%</th>
+                <th class="th-form">Forma</th>
+              </tr>
+            </thead>
+            <tbody id="standingsBody">
+              <!-- Renderizado via JavaScript -->
+            </tbody>
+          </table>
+        </div>
+
+        <div class="table-footer-legend">
+          <div class="legend-item"><span class="pos-badge pos-1">1</span> Campeão (Líder)</div>
+          <div class="legend-item"><span class="form-badge form-w">V</span> Vitória</div>
+          <div class="legend-item"><span class="form-badge form-d">E</span> Empate</div>
+          <div class="legend-item"><span class="form-badge form-l">D</span> Derrota</div>
+        </div>
+      </section>
+
+      <!-- Painel de Destaques / Estatísticas Rápidas -->
+      <section class="card stats-card">
+        <div class="card-header">
+          <div class="card-title-group">
+            <span class="card-icon">⚡</span>
+            <div>
+              <h2 class="card-title">Estatísticas</h2>
+              <span class="card-subtitle">Desempenho geral do campeonato</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="stats-grid">
+          <div class="stat-box">
+            <span class="stat-label">Total de Gols</span>
+            <span id="statTotalGoals" class="stat-value">0</span>
+            <span class="stat-sub">nas partidas</span>
+          </div>
+          <div class="stat-box">
+            <span class="stat-label">Média por Partida</span>
+            <span id="statAvgGoals" class="stat-value">0.0</span>
+            <span class="stat-sub">gols / jogo</span>
+          </div>
+          <div class="stat-box">
+            <span class="stat-label">Melhor Ataque</span>
+            <span id="statBestAttack" class="stat-value highlight-cyan">-</span>
+            <span id="statBestAttackGoals" class="stat-sub">0 gols</span>
+          </div>
+          <div class="stat-box">
+            <span class="stat-label">Melhor Defesa</span>
+            <span id="statBestDefense" class="stat-value highlight-pink">-</span>
+            <span id="statBestDefenseGoals" class="stat-sub">0 gols sofridos</span>
+          </div>
+        </div>
+
+        <!-- Critérios de Desempate -->
+        <div class="rules-card">
+          <h3 class="rules-title">📌 Critérios de Classificação</h3>
+          <ol class="rules-list">
+            <li><strong>Maior pontuação</strong> (PTS)</li>
+            <li><strong>Maior número de vitórias</strong> (V)</li>
+            <li><strong>Melhor saldo de gols</strong> (SG = GP - GC)</li>
+            <li><strong>Maior número de gols pró</strong> (GP)</li>
+            <li><strong>Menor número de gols sofridos</strong> (GC)</li>
+            <li><strong>Confronto direto</strong></li>
+          </ol>
+        </div>
+      </section>
+    </main>
+
+    <!-- Seção de Rodadas e Jogos -->
+    <section class="card matches-section">
+      <div class="card-header matches-header">
+        <div class="card-title-group">
+          <span class="card-icon">🎮</span>
+          <div>
+            <h2 class="card-title">Jogos e Rodadas</h2>
+            <span class="card-subtitle">Preencha os placares das partidas abaixo</span>
+          </div>
+        </div>
+
+        <!-- Filtro de Rodadas -->
+        <div class="round-tabs" id="roundTabs">
+          <button class="tab-btn active" data-filter="all">Todas (6)</button>
+          <button class="tab-btn" data-filter="turno">Turno (Ida)</button>
+          <button class="tab-btn" data-filter="returno">Returno (Volta)</button>
+        </div>
+      </div>
+
+      <!-- Container das Rodadas -->
+      <div id="roundsContainer" class="rounds-container">
+        <!-- Renderizado dinamicamente via JS -->
+      </div>
+    </section>
+
+    <!-- Rodapé -->
+    <footer class="footer">
+      <p>eFootball League Manager • Desenvolvido para torneios competitivos entre amigos</p>
+      <p class="footer-note">Os dados ficam salvos automaticamente no seu navegador.</p>
+    </footer>
+  </div>
+
+  <!-- Modal Dedicado de Confirmação (Substitui confirm()) -->
+  <div id="customModal" class="modal-overlay hidden" role="dialog" aria-modal="true">
+    <div class="modal-box">
+      <div class="modal-header">
+        <div class="modal-icon-badge" id="modalIcon">⚠️</div>
+        <h3 class="modal-title" id="modalTitle">Confirmação</h3>
+      </div>
+      <div class="modal-body">
+        <p id="modalMessage">Tem certeza de que deseja realizar esta ação?</p>
+      </div>
+      <div class="modal-actions">
+        <button id="modalBtnCancel" class="btn btn-secondary">Cancelar</button>
+        <button id="modalBtnConfirm" class="btn btn-danger">Confirmar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Pop-up Dedicado de Notificação / Toast (Substitui alert()) -->
+  <div id="toastContainer" class="toast-container" aria-live="polite"></div>
+
+  <script src="app.js"></script>
+</body>
+</html>
+
