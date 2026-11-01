@@ -21,6 +21,7 @@ const STORAGE_USER_KEY = 'efootball_current_user_v1';
 const STORAGE_HISTORY_KEY = 'efootball_league_history_v1';
 const STORAGE_KNOCKOUT_KEY = 'efootball_knockout_v1';
 const STORAGE_PHOTOS_KEY = 'efootball_player_photos_v1';
+const STORAGE_ACTIVE_TAB_KEY = 'efootball_active_tab_v1';
 
 // Lista de jogadores inicial
 const INITIAL_PLAYERS = ['Sidney', 'Miguel', 'Gabriel', 'Pedro'];
@@ -77,6 +78,7 @@ let cloudSyncTimeout = null;
 function init() {
   loadLocalBackup();
   setupEventListeners();
+  switchMainTab(activeTab || 'tournament');
   renderApp();
   initFirebaseRealtime();
 
@@ -162,6 +164,14 @@ function loadLocalBackup() {
       }
     } catch (e) {
       playerPhotos = {};
+    }
+  }
+
+  const storedTab = localStorage.getItem(STORAGE_ACTIVE_TAB_KEY);
+  if (storedTab && ['tournament', 'knockout', 'history', 'players'].includes(storedTab)) {
+    activeTab = storedTab;
+    if (storedTab === 'tournament' || storedTab === 'knockout') {
+      lastCompetitionTab = storedTab;
     }
   }
 }
@@ -2251,16 +2261,12 @@ function renderKnockoutView() {
     formatSelect.value = knockoutState.format;
   }
 
-  // Atualiza estado ativo dos botões de modo de visualização (Foto + Nome | Só Fotos | Só Nomes)
+  // Atualiza estado do dropdown de modo de visualização (Foto + Nome | Só Foto | Só Nome)
   const displayMode = knockoutState.displayMode || 'photo_name';
-  const dispBtns = document.querySelectorAll('.ko-display-btn');
-  dispBtns.forEach(btn => {
-    if (btn.dataset.koDisplay === displayMode) {
-      btn.classList.add('active');
-    } else {
-      btn.classList.remove('active');
-    }
-  });
+  const displaySelect = document.getElementById('selectKnockoutDisplayMode');
+  if (displaySelect) {
+    displaySelect.value = displayMode;
+  }
 
   propagateKnockoutBracket();
 
@@ -2961,6 +2967,7 @@ function switchMainTab(targetView) {
   }
 
   activeTab = targetView;
+  localStorage.setItem(STORAGE_ACTIVE_TAB_KEY, targetView);
   closeHamburgerDrawer();
 }
 
@@ -3030,16 +3037,15 @@ function setupEventListeners() {
     });
   }
 
-  // Botões de Modo de Visualização do Mata-Mata (Foto+Nome | Só Fotos | Só Nomes)
-  const koDisplayBtns = document.querySelectorAll('.ko-display-btn');
-  koDisplayBtns.forEach(btn => {
-    btn.addEventListener('click', (e) => {
-      const mode = e.currentTarget.dataset.koDisplay || 'photo_name';
-      knockoutState.displayMode = mode;
+  // Dropdown de Modo de Visualização do Mata-Mata (Foto + Nome | Só Foto | Só Nome)
+  const selectKnockoutDisplayMode = document.getElementById('selectKnockoutDisplayMode');
+  if (selectKnockoutDisplayMode) {
+    selectKnockoutDisplayMode.addEventListener('change', (e) => {
+      knockoutState.displayMode = e.target.value || 'photo_name';
       renderKnockoutView();
       syncToCloud(true);
     });
-  });
+  }
 
   // Botão e Modal de Identificação do Usuário
   const btnUserProfile = document.getElementById('btnUserProfile');

@@ -32,7 +32,6 @@
           </div>
         </div>
         <h1 class="main-title">CAMPEONATO DE PONTOS CORRIDOS</h1>
-        <p id="headerSubtitle" class="subtitle">4 Jogadores • 6 Rodadas (Turno e Returno) • Vitória = 3 pts | Empate = 1 pt</p>
       </div>
 
       <div class="header-actions">
@@ -64,11 +63,11 @@
       <nav class="mode-toggle-switch" aria-label="Alternar modo de campeonato">
         <button id="navTabTournament" class="mode-toggle-btn active" data-view="tournament">
           <span class="tab-btn-icon">🏆</span>
-          <span>Estilo Tabela (Pontos Corridos)</span>
+          <span>Pontos Corridos</span>
         </button>
         <button id="navTabKnockout" class="mode-toggle-btn" data-view="knockout">
           <span class="tab-btn-icon">⚡</span>
-          <span>Estilo Campeonato (Mata-Mata)</span>
+          <span>Mata-Mata</span>
         </button>
       </nav>
 
@@ -418,31 +417,26 @@
           <div class="card-title-group">
             <span class="card-icon">⚡</span>
             <div>
-              <h2 class="card-title">Copa Mata-Mata & Sorteio Ao Vivo</h2>
-              <span class="card-subtitle">Sorteie os confrontos eliminatórios e decida quem avança para a Grande Final!</span>
+              <h2 class="card-title">Mata-Mata</h2>
             </div>
           </div>
 
           <div class="knockout-controls">
-            <!-- Opção de Visualização: Foto + Nome | Só Fotos | Só Nomes -->
-            <div class="ko-display-mode-group" role="group" aria-label="Modo de visualização dos jogadores">
-              <span class="format-label">Visual:</span>
-              <button type="button" class="ko-display-btn active" data-ko-display="photo_name" title="Exibir Foto e Nome">
-                🖼️ Foto + Nome
-              </button>
-              <button type="button" class="ko-display-btn" data-ko-display="photo_only" title="Exibir Somente as Fotos">
-                📸 Só Fotos
-              </button>
-              <button type="button" class="ko-display-btn" data-ko-display="name_only" title="Exibir Somente os Nomes">
-                🔤 Só Nomes
-              </button>
+            <!-- Dropdown de Visualização: Foto + Nome | Só Foto | Só Nome -->
+            <div class="knockout-format-group">
+              <label for="selectKnockoutDisplayMode" class="format-label">Visual:</label>
+              <select id="selectKnockoutDisplayMode" class="select-input">
+                <option value="photo_name" selected>Foto + Nome</option>
+                <option value="photo_only">Só Foto</option>
+                <option value="name_only">Só Nome</option>
+              </select>
             </div>
 
             <div class="knockout-format-group">
               <label for="selectKnockoutFormat" class="format-label">Formato:</label>
               <select id="selectKnockoutFormat" class="select-input">
-                <option value="two_legs" selected>Ida e Volta (Final Jogo Único)</option>
-                <option value="single">Tudo em Jogo Único</option>
+                <option value="two_legs" selected>Ida e Volta</option>
+                <option value="single">Jogo Único</option>
               </select>
             </div>
             <button type="button" id="btnDrawKnockout" class="btn btn-primary">
@@ -518,8 +512,7 @@
 
     <!-- Rodapé -->
     <footer class="footer">
-      <p>eFootball League Manager • Desenvolvido para torneios competitivos entre amigos</p>
-      <p class="footer-note">⚡ Sincronizado em tempo real na nuvem para todos os jogadores simultaneamente.</p>
+      <p>eFootball League Manager </p>
     </footer>
   </div>
 
