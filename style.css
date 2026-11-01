@@ -1457,6 +1457,691 @@ body {
   transform: scale(1.05);
 }
 
+/* ========================================================= */
+/* IDENTIFICAÇÃO DO USUÁRIO / PERFIL ATUAL                   */
+/* ========================================================= */
+.btn-user-profile {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  background: linear-gradient(135deg, rgba(0, 240, 255, 0.12), rgba(37, 99, 235, 0.18));
+  border: 1px solid rgba(0, 240, 255, 0.35);
+  padding: 6px 14px;
+  border-radius: var(--radius-md);
+  color: #ffffff;
+  transition: all 0.2s ease;
+}
+
+.btn-user-profile:hover {
+  background: linear-gradient(135deg, rgba(0, 240, 255, 0.22), rgba(37, 99, 235, 0.3));
+  border-color: var(--accent-cyan);
+  box-shadow: 0 0 15px rgba(0, 240, 255, 0.25);
+}
+
+.user-profile-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--accent-cyan), #2563eb);
+  color: #041020;
+  font-family: var(--font-display);
+  font-size: 1.15rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.user-profile-text {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  line-height: 1.15;
+}
+
+.user-profile-label {
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text-muted);
+  font-weight: 700;
+}
+
+.user-profile-name {
+  font-size: 0.92rem;
+  font-weight: 800;
+  color: var(--accent-cyan);
+}
+
+.user-profile-change {
+  font-size: 0.72rem;
+  background: rgba(255, 255, 255, 0.1);
+  padding: 3px 8px;
+  border-radius: var(--radius-full);
+  color: var(--text-main);
+  font-weight: 700;
+  margin-left: 4px;
+}
+
+/* Modal Dedicado de Seleção de Usuário */
+.user-modal-box {
+  max-width: 480px;
+}
+
+.user-icon-badge {
+  background: rgba(0, 240, 255, 0.15);
+  border-color: rgba(0, 240, 255, 0.35);
+}
+
+.modal-subtitle {
+  font-size: 0.82rem;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+
+.user-modal-section-label {
+  display: block;
+  font-size: 0.8rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  color: var(--text-muted);
+  margin-bottom: 10px;
+}
+
+.quick-select-players-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+  margin-bottom: 18px;
+}
+
+.quick-player-btn {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: rgba(18, 28, 52, 0.85);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: var(--radius-md);
+  padding: 10px 14px;
+  color: #ffffff;
+  font-family: var(--font-body);
+  font-size: 0.95rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-align: left;
+}
+
+.quick-player-btn:hover {
+  border-color: var(--accent-cyan);
+  background: rgba(0, 240, 255, 0.1);
+  transform: translateY(-1px);
+}
+
+.quick-player-btn.selected {
+  border-color: var(--accent-cyan);
+  background: linear-gradient(135deg, rgba(0, 240, 255, 0.2), rgba(37, 99, 235, 0.25));
+  box-shadow: 0 0 12px rgba(0, 240, 255, 0.25);
+}
+
+.quick-player-avatar {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: rgba(0, 240, 255, 0.15);
+  border: 1px solid rgba(0, 240, 255, 0.4);
+  color: var(--accent-cyan);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-display);
+  font-size: 1.05rem;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.user-modal-divider {
+  display: flex;
+  align-items: center;
+  text-align: center;
+  color: var(--text-subtle);
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  font-weight: 700;
+  letter-spacing: 0.8px;
+  margin: 16px 0;
+}
+
+.user-modal-divider::before,
+.user-modal-divider::after {
+  content: '';
+  flex: 1;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.user-modal-divider span {
+  padding: 0 10px;
+}
+
+.custom-user-form {
+  display: flex;
+  gap: 10px;
+}
+
+.custom-user-input {
+  padding-left: 16px;
+}
+
+/* Badge "VOCÊ" e Destaque na Tabela / Partidas */
+.you-badge {
+  display: inline-flex;
+  align-items: center;
+  background: linear-gradient(135deg, var(--accent-cyan), #3b82f6);
+  color: #030914;
+  font-size: 0.65rem;
+  font-weight: 800;
+  padding: 2px 6px;
+  border-radius: 4px;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  margin-left: 6px;
+  vertical-align: middle;
+}
+
+.standings-table tbody tr.is-current-user-row {
+  background: rgba(0, 240, 255, 0.08);
+}
+
+.standings-table tbody tr.is-current-user-row:hover {
+  background: rgba(0, 240, 255, 0.12);
+}
+
+.match-item.is-user-match {
+  box-shadow: inset 0 0 0 1px rgba(0, 240, 255, 0.22);
+}
+
+.btn-gold-outline {
+  background: rgba(255, 190, 26, 0.1);
+  color: var(--accent-gold);
+  border: 1px solid rgba(255, 190, 26, 0.4);
+}
+
+.btn-gold-outline:hover {
+  background: rgba(255, 190, 26, 0.22);
+  border-color: var(--accent-gold);
+  color: #ffffff;
+}
+
+.champion-banner-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.main-nav-tabs {
+  flex-wrap: wrap;
+}
+
+/* ========================================================= */
+/* ABA: COPA MATA-MATA & SORTEIO AO VIVO                     */
+/* ========================================================= */
+.knockout-header {
+  border-bottom: 1px solid var(--border-color);
+  padding-bottom: 18px;
+}
+
+.knockout-controls {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.knockout-format-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(8, 12, 22, 0.7);
+  border: 1px solid var(--border-color);
+  padding: 6px 12px;
+  border-radius: var(--radius-md);
+}
+
+.format-label {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+}
+
+.select-input {
+  background: transparent;
+  border: none;
+  color: var(--accent-cyan);
+  font-family: var(--font-body);
+  font-size: 0.9rem;
+  font-weight: 700;
+  outline: none;
+  cursor: pointer;
+}
+
+.select-input option {
+  background: #0d1527;
+  color: #ffffff;
+}
+
+/* Animação de Sorteio */
+.draw-animation-area {
+  background: linear-gradient(135deg, rgba(0, 240, 255, 0.12), rgba(255, 0, 119, 0.15));
+  border: 2px solid var(--accent-cyan);
+  border-radius: var(--radius-lg);
+  padding: 32px 20px;
+  text-align: center;
+  margin: 24px 0;
+  box-shadow: var(--shadow-neon);
+}
+
+.draw-spinner-icon {
+  font-size: 3.2rem;
+  display: inline-block;
+  animation: spinDice 0.6s linear infinite;
+}
+
+@keyframes spinDice {
+  0% { transform: rotate(0deg) scale(1); }
+  50% { transform: rotate(180deg) scale(1.2); }
+  100% { transform: rotate(360deg) scale(1); }
+}
+
+.draw-animation-title {
+  font-size: 1rem;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  color: var(--accent-cyan);
+  margin: 8px 0 4px;
+}
+
+.draw-shuffle-names {
+  font-family: var(--font-display);
+  font-size: 2.6rem;
+  font-weight: 700;
+  color: #ffffff;
+  letter-spacing: 1.5px;
+}
+
+/* Chaveamento do Mata-Mata */
+.knockout-bracket-container {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(440px, 1fr));
+  gap: 24px;
+  margin-top: 24px;
+}
+
+.knockout-empty-state {
+  grid-column: 1 / -1;
+  text-align: center;
+  padding: 48px 20px;
+  background: rgba(10, 16, 30, 0.5);
+  border: 1px dashed rgba(255, 255, 255, 0.15);
+  border-radius: var(--radius-lg);
+}
+
+.knockout-empty-icon {
+  font-size: 3rem;
+  margin-bottom: 12px;
+}
+
+.knockout-empty-title {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #ffffff;
+  margin-bottom: 6px;
+}
+
+.knockout-empty-desc {
+  color: var(--text-muted);
+  font-size: 0.92rem;
+  max-width: 480px;
+  margin: 0 auto 20px;
+}
+
+.knockout-stage-card {
+  background: rgba(10, 16, 30, 0.78);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.knockout-stage-card.final-stage-card {
+  border-color: rgba(255, 190, 26, 0.45);
+  background: linear-gradient(180deg, rgba(255, 190, 26, 0.08) 0%, rgba(10, 16, 30, 0.85) 100%);
+}
+
+.knockout-stage-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-bottom: 10px;
+  border-bottom: 1px dashed rgba(255, 255, 255, 0.1);
+}
+
+.knockout-stage-title {
+  font-family: var(--font-display);
+  font-size: 1.6rem;
+  font-weight: 700;
+  color: #ffffff;
+  letter-spacing: 0.8px;
+}
+
+.tag-final {
+  background: rgba(255, 190, 26, 0.18);
+  color: var(--accent-gold);
+  border: 1px solid rgba(255, 190, 26, 0.4);
+}
+
+.knockout-tie-box {
+  background: rgba(16, 25, 48, 0.9);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: var(--radius-md);
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.knockout-tie-box.has-winner {
+  border-color: rgba(0, 240, 255, 0.3);
+}
+
+.knockout-leg-label {
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  font-weight: 700;
+  color: var(--text-muted);
+  letter-spacing: 0.6px;
+  margin-bottom: 4px;
+}
+
+/* Desempate por Pênaltis */
+.penalty-decision-bar {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  background: rgba(255, 190, 26, 0.08);
+  border: 1px dashed rgba(255, 190, 26, 0.4);
+  border-radius: var(--radius-sm);
+  padding: 10px 12px;
+  margin-top: 4px;
+}
+
+.penalty-label {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--accent-gold);
+  text-align: center;
+}
+
+.penalty-btns-row {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+}
+
+.btn-penalty-pick {
+  flex: 1;
+  background: rgba(255, 255, 255, 0.07);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  color: var(--text-main);
+  font-family: var(--font-body);
+  font-size: 0.8rem;
+  font-weight: 700;
+  padding: 6px 10px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-penalty-pick:hover {
+  border-color: var(--accent-gold);
+  color: #ffffff;
+}
+
+.btn-penalty-pick.active-penalty-winner {
+  background: linear-gradient(135deg, #ffd700, #ff9900);
+  color: #1a1200;
+  border-color: #ffd700;
+}
+
+/* ========================================================= */
+/* ABA: SALA DE TROFÉUS & HISTÓRICO DE CAMPEONATOS           */
+/* ========================================================= */
+.hall-of-fame-card {
+  margin-bottom: 24px;
+}
+
+.hall-of-fame-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 16px;
+}
+
+.trophy-player-card {
+  background: rgba(12, 20, 38, 0.8);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  padding: 18px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  position: relative;
+  overflow: hidden;
+  transition: transform 0.2s, border-color 0.2s;
+}
+
+.trophy-player-card.top-champion {
+  border-color: rgba(255, 190, 26, 0.5);
+  background: linear-gradient(135deg, rgba(255, 190, 26, 0.12), rgba(12, 20, 38, 0.9));
+}
+
+.trophy-count-circle {
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  background: rgba(255, 190, 26, 0.15);
+  border: 2px solid var(--accent-gold);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  color: var(--accent-gold);
+  font-family: var(--font-display);
+  font-size: 1.45rem;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.trophy-player-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.trophy-player-name {
+  font-size: 1.05rem;
+  font-weight: 800;
+  color: #ffffff;
+}
+
+.trophy-player-sub {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+}
+
+/* Lista de Campeonatos Anteriores */
+.history-list-container {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
+  gap: 18px;
+}
+
+.history-item-card {
+  background: rgba(12, 20, 38, 0.85);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 16px;
+  transition: all 0.2s ease;
+}
+
+.history-item-card:hover {
+  border-color: rgba(0, 240, 255, 0.35);
+  transform: translateY(-2px);
+}
+
+.history-card-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.history-edition-title {
+  font-size: 1.1rem;
+  font-weight: 800;
+  color: #ffffff;
+}
+
+.history-date-text {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+
+.history-mode-badge {
+  font-size: 0.7rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  padding: 3px 9px;
+  border-radius: var(--radius-full);
+  white-space: nowrap;
+}
+
+.mode-league {
+  background: rgba(0, 240, 255, 0.14);
+  color: var(--accent-cyan);
+  border: 1px solid rgba(0, 240, 255, 0.3);
+}
+
+.mode-knockout {
+  background: rgba(255, 0, 119, 0.14);
+  color: var(--accent-pink);
+  border: 1px solid rgba(255, 0, 119, 0.3);
+}
+
+.history-podium-box {
+  background: rgba(6, 10, 20, 0.65);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: var(--radius-sm);
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.podium-line {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 0.9rem;
+}
+
+.podium-champion {
+  font-weight: 800;
+  color: var(--accent-gold);
+  font-size: 1rem;
+}
+
+.history-card-actions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  padding-top: 10px;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+/* Modal de Salvar Histórico e Detalhes */
+.gold-icon-badge {
+  background: rgba(255, 190, 26, 0.15);
+  border-color: rgba(255, 190, 26, 0.4);
+}
+
+.save-history-preview {
+  background: rgba(255, 190, 26, 0.1);
+  border: 1px solid rgba(255, 190, 26, 0.3);
+  border-radius: var(--radius-md);
+  padding: 14px 16px;
+  margin-bottom: 16px;
+  color: var(--text-main);
+  font-size: 0.9rem;
+}
+
+.checkbox-reset-after {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 16px;
+  font-size: 0.86rem;
+  color: var(--text-muted);
+  cursor: pointer;
+}
+
+.checkbox-reset-after input {
+  width: 17px;
+  height: 17px;
+  accent-color: var(--accent-cyan);
+}
+
+.history-detail-modal-box {
+  max-width: 760px;
+  max-height: 85vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.history-detail-body {
+  overflow-y: auto;
+  padding-right: 6px;
+}
+
+.detail-matches-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.detail-match-pill {
+  background: rgba(16, 25, 48, 0.8);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  padding: 8px 12px;
+  font-size: 0.85rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
 /* Responsividade Mobile */
 @media (max-width: 640px) {
   .container {

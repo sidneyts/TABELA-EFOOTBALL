@@ -17,6 +17,9 @@ const FIREBASE_CONFIG = {
 // Chaves de armazenamento local (Cache e fallback offline)
 const STORAGE_PLAYERS_KEY = 'efootball_league_players_v2';
 const STORAGE_MATCHES_KEY = 'efootball_league_matches_v2';
+const STORAGE_USER_KEY = 'efootball_current_user_v1';
+const STORAGE_HISTORY_KEY = 'efootball_league_history_v1';
+const STORAGE_KNOCKOUT_KEY = 'efootball_knockout_v1';
 
 // Lista de jogadores inicial
 const INITIAL_PLAYERS = ['Sidney', 'Miguel', 'Gabriel', 'Pedro'];
@@ -47,9 +50,15 @@ const DEFAULT_MATCHES_4 = [
 // Estado global da aplicação
 let players = [];
 let matches = [];
+let tournamentHistory = [];
+let knockoutState = { format: 'single', ties: [] };
+let currentUser = '';
+let lastUpdatedBy = '';
 let currentFilter = 'all'; // 'all', 'turno', 'returno'
-let activeTab = 'tournament'; // 'tournament', 'players'
+let activeTab = 'tournament'; // 'tournament', 'knockout', 'history', 'players'
 let hasCelebrated = false;
+let hasCelebratedKnockout = false;
+let pendingSaveMode = 'league'; // 'league' ou 'knockout'
 
 // Instâncias do Firebase
 let db = null;
@@ -65,6 +74,13 @@ function init() {
   setupEventListeners();
   renderApp();
   initFirebaseRealtime();
+
+  // Se o usuário ainda não escolheu seu nome neste navegador, abre o pop-up dedicado de identificação
+  if (!currentUser && typeof document !== 'undefined' && document.getElementById) {
+    setTimeout(() => {
+      openUserProfileModal();
+    }, 400);
+  }
 }
 
 function loadData() {
@@ -72,6 +88,10 @@ function loadData() {
 }
 
 function loadLocalBackup() {
+  const storedUser = localStorage.getItem(STORAGE_USER_KEY);
+  if (storedUser) {
+    currentUser = storedUser.trim();
+  }
   const storedPlayers = localStorage.getItem(STORAGE_PLAYERS_KEY);
   if (storedPlayers) {
     try {
@@ -103,6 +123,30 @@ function loadLocalBackup() {
   } else {
     initDefaultSchedule();
   }
+
+  const storedHistory = localStorage.getItem(STORAGE_HISTORY_KEY);
+  if (storedHistory) {
+    try {
+      const parsedHistory = JSON.parse(storedHistory);
+      if (Array.isArray(parsedHistory)) {
+        tournamentHistory = parsedHistory;
+      }
+    } catch (e) {
+      tournamentHistory = [];
+    }
+  }
+
+  const storedKnockout = localStorage.getItem(STORAGE_KNOCKOUT_KEY);
+  if (storedKnockout) {
+    try {
+      const parsedKO = JSON.parse(storedKnockout);
+      if (parsedKO && Array.isArray(parsedKO.ties)) {
+        knockoutState = parsedKO;
+      }
+    } catch (e) {
+      knockoutState = { format: 'single', ties: [] };
+    }
+  }
 }
 
 function initDefaultSchedule() {
@@ -121,6 +165,8 @@ function isExactOriginalFour(list) {
 function saveLocalBackup() {
   localStorage.setItem(STORAGE_PLAYERS_KEY, JSON.stringify(players));
   localStorage.setItem(STORAGE_MATCHES_KEY, JSON.stringify(matches));
+  localStorage.setItem(STORAGE_HISTORY_KEY, JSON.stringify(tournamentHistory));
+  localStorage.setItem(STORAGE_KNOCKOUT_KEY, JSON.stringify(knockoutState));
 }
 
 /* ==========================================================================
@@ -165,12 +211,32 @@ function initFirebaseRealtime() {
           }
         }
 
+        if (Array.isArray(cloudData.history)) {
+          if (JSON.stringify(cloudData.history) !== JSON.stringify(tournamentHistory)) {
+            tournamentHistory = cloudData.history;
+            shouldReRender = true;
+          }
+        }
+
+        if (cloudData.knockout && Array.isArray(cloudData.knockout.ties)) {
+          if (JSON.stringify(cloudData.knockout) !== JSON.stringify(knockoutState)) {
+            knockoutState = cloudData.knockout;
+            shouldReRender = true;
+          }
+        }
+
+        if (cloudData.lastUpdatedBy) {
+          lastUpdatedBy = cloudData.lastUpdatedBy;
+        }
+
         saveLocalBackup();
 
         if (shouldReRender) {
-          // Se o usuário estiver focado em um input, apenas atualiza valores visuais
           const activeInput = document.activeElement;
-          const isTyping = activeInput && activeInput.classList && activeInput.classList.contains('score-input');
+          const isTyping = activeInput && activeInput.classList && (
+            activeInput.classList.contains('score-input') ||
+            activeInput.classList.contains('ko-score-input')
+          );
 
           if (!isTyping) {
             renderApp();
@@ -179,9 +245,11 @@ function initFirebaseRealtime() {
           }
         }
 
-        updateSyncStatus('online', 'Ao vivo • Tempo Real');
+        const statusMsg = lastUpdatedBy
+          ? `Ao vivo • Atualizado por ${lastUpdatedBy}`
+          : 'Ao vivo • Tempo Real';
+        updateSyncStatus('online', statusMsg);
       } else {
-        // Documento novo na nuvem: envia a tabela inicial com as 2 primeiras rodadas
         syncToCloud(true);
         updateSyncStatus('online', 'Ao vivo • Tempo Real');
       }
@@ -211,13 +279,24 @@ function syncToCloud(immediate = false) {
 
   const sendData = () => {
     updateSyncStatus('syncing', 'Sincronizando...');
-    tournamentDocRef.set({
+    const payload = {
       players: players,
       matches: matches,
+      history: tournamentHistory,
+      knockout: knockoutState,
       updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-    }, { merge: true })
+    };
+    if (currentUser) {
+      payload.lastUpdatedBy = currentUser;
+      lastUpdatedBy = currentUser;
+    }
+
+    tournamentDocRef.set(payload, { merge: true })
     .then(() => {
-      updateSyncStatus('online', 'Ao vivo • Tempo Real');
+      const statusMsg = lastUpdatedBy
+        ? `Ao vivo • Atualizado por ${lastUpdatedBy}`
+        : 'Ao vivo • Tempo Real';
+      updateSyncStatus('online', statusMsg);
     })
     .catch((err) => {
       console.error('Erro ao salvar no Firestore:', err);
@@ -452,12 +531,17 @@ function renderApp() {
   renderStats(standings);
   renderMatches();
   renderPlayersManager();
+  renderKnockoutView();
+  renderHistoryView();
   checkChampionStatus(standings);
 }
 
 function updateHeaderInfo() {
   const subtitle = document.getElementById('headerSubtitle');
   const countBadge = document.getElementById('playersCountBadge');
+  const historyBadge = document.getElementById('historyCountBadge');
+  const userNameEl = document.getElementById('headerUserName');
+  const userAvatarEl = document.getElementById('headerUserAvatar');
   const roundsTotal = calculateTotalRounds();
 
   if (subtitle) {
@@ -465,6 +549,18 @@ function updateHeaderInfo() {
   }
   if (countBadge) {
     countBadge.textContent = players.length;
+  }
+  if (historyBadge) {
+    historyBadge.textContent = tournamentHistory.length;
+  }
+  if (userNameEl && userAvatarEl) {
+    if (currentUser) {
+      userNameEl.textContent = currentUser;
+      userAvatarEl.textContent = currentUser.charAt(0).toUpperCase();
+    } else {
+      userNameEl.textContent = 'Identificar-se';
+      userAvatarEl.textContent = '👤';
+    }
   }
 }
 
@@ -482,6 +578,10 @@ function renderStandingsTable(standings) {
   standings.forEach((player, index) => {
     const pos = index + 1;
     const tr = document.createElement('tr');
+    const isMe = currentUser && player.name.toLowerCase() === currentUser.toLowerCase();
+    if (isMe) {
+      tr.classList.add('is-current-user-row');
+    }
     const posBadgeClass = pos <= 3 ? `pos-${pos}` : '';
 
     const recentForm = player.form.slice(-5);
@@ -496,6 +596,7 @@ function renderStandingsTable(standings) {
     }
 
     const initial = player.name.charAt(0).toUpperCase();
+    const youBadgeHtml = isMe ? '<span class="you-badge">VOCÊ</span>' : '';
 
     tr.innerHTML = `
       <td class="pos-cell">
@@ -504,7 +605,7 @@ function renderStandingsTable(standings) {
       <td>
         <div class="player-cell">
           <div class="player-avatar">${initial}</div>
-          <span class="player-name-text">${player.name}</span>
+          <span class="player-name-text">${player.name}${youBadgeHtml}</span>
         </div>
       </td>
       <td class="pts-cell">${player.pts}</td>
@@ -653,9 +754,14 @@ function renderMatches() {
 
       const homeVal = m.homeScore !== null ? m.homeScore : '';
       const awayVal = m.awayScore !== null ? m.awayScore : '';
+      const isUserInMatch = currentUser && (
+        m.home.toLowerCase() === currentUser.toLowerCase() ||
+        m.away.toLowerCase() === currentUser.toLowerCase()
+      );
+      const userMatchClass = isUserInMatch ? 'is-user-match' : '';
 
       matchesHtml += `
-        <div class="match-item ${statusClass}" data-match-id="${m.id}">
+        <div class="match-item ${statusClass} ${userMatchClass}" data-match-id="${m.id}">
           <div class="match-row">
             <!-- Time Mandante -->
             <div class="team-box team-home ${homeWinnerClass}">
@@ -781,7 +887,11 @@ function updateMatchCardVisual(matchId) {
   if (!match || !card) return;
 
   const isPlayed = match.homeScore !== null && match.awayScore !== null;
-  card.className = `match-item ${isPlayed ? 'played' : ''}`;
+  const isUserInMatch = currentUser && (
+    match.home.toLowerCase() === currentUser.toLowerCase() ||
+    match.away.toLowerCase() === currentUser.toLowerCase()
+  );
+  card.className = `match-item ${isPlayed ? 'played' : ''} ${isUserInMatch ? 'is-user-match' : ''}`;
 
   const homeBox = card.querySelector('.team-home');
   const awayBox = card.querySelector('.team-away');
@@ -1243,30 +1353,1265 @@ function showToast(message, type = 'info', duration = 3500) {
 }
 
 /* ==========================================================================
+   Identificação do Usuário / Perfil Atual (Modal Dedicado)
+   ========================================================================== */
+function openUserProfileModal() {
+  const modal = document.getElementById('userProfileModal');
+  const grid = document.getElementById('quickSelectPlayersGrid');
+  const input = document.getElementById('inputCustomUserName');
+
+  if (!modal || !grid) return;
+
+  grid.innerHTML = '';
+
+  players.forEach(pName => {
+    const isSelected = currentUser && currentUser.toLowerCase() === pName.toLowerCase();
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = `quick-player-btn ${isSelected ? 'selected' : ''}`;
+    btn.innerHTML = `
+      <span class="quick-player-avatar">${pName.charAt(0).toUpperCase()}</span>
+      <span>${pName}</span>
+    `;
+    btn.addEventListener('click', () => {
+      setCurrentUserProfile(pName);
+    });
+    grid.appendChild(btn);
+  });
+
+  if (input) {
+    input.value = currentUser || '';
+  }
+
+  modal.classList.remove('hidden');
+
+  modal.onclick = (e) => {
+    if (e.target === modal) {
+      closeUserProfileModal();
+    }
+  };
+}
+
+function closeUserProfileModal() {
+  const modal = document.getElementById('userProfileModal');
+  if (modal) {
+    modal.classList.add('hidden');
+  }
+}
+
+function setCurrentUserProfile(name) {
+  const cleanName = (name || '').trim();
+  if (!cleanName) {
+    showToast('Digite ou selecione um nome válido.', 'warning');
+    return;
+  }
+
+  currentUser = cleanName;
+  localStorage.setItem(STORAGE_USER_KEY, currentUser);
+
+  closeUserProfileModal();
+  renderApp();
+  showToast(`👋 Conectado como "${currentUser}"! Seus jogos estão destacados.`, 'success');
+}
+
+function handleSaveCustomUserName() {
+  const input = document.getElementById('inputCustomUserName');
+  if (!input) return;
+  const val = input.value.trim();
+  if (!val) {
+    showToast('Digite seu nome no campo antes de confirmar.', 'warning');
+    input.focus();
+    return;
+  }
+  setCurrentUserProfile(val);
+}
+
+/* ==========================================================================
+   Modo Mata-Mata (Sorteio Ao Vivo & Chaveamento Eliminatório)
+   ========================================================================== */
+function shuffleArray(arr) {
+  const copy = [...arr];
+  for (let i = copy.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [copy[i], copy[j]] = [copy[j], copy[i]];
+  }
+  return copy;
+}
+
+function handleDrawKnockout() {
+  if (players.length < 3) {
+    showToast('É necessário ter pelo menos 3 jogadores inscritos para sortear o Mata-Mata.', 'warning');
+    return;
+  }
+
+  const hasOngoingScores = knockoutState.ties && knockoutState.ties.some(
+    t => t.leg1Home !== null || t.leg1Away !== null || t.leg2Home !== null || t.leg2Away !== null
+  );
+
+  if (hasOngoingScores) {
+    openConfirmModal({
+      title: 'Realizar Novo Sorteio do Mata-Mata?',
+      message: 'Já existem confrontos ou placares preenchidos no Mata-Mata atual. Fazer um novo sorteio irá embaralhar os jogadores e zerar o chaveamento atual. Deseja sortear?',
+      icon: '🎲',
+      confirmText: 'Sim, sortear novamente',
+      cancelText: 'Cancelar',
+      onConfirm: () => {
+        startKnockoutDrawAnimation();
+      }
+    });
+  } else {
+    startKnockoutDrawAnimation();
+  }
+}
+
+function startKnockoutDrawAnimation() {
+  const animArea = document.getElementById('drawAnimationArea');
+  const shuffleNamesEl = document.getElementById('drawShuffleNames');
+  const formatSelect = document.getElementById('selectKnockoutFormat');
+  const selectedFormat = formatSelect ? formatSelect.value : 'single';
+
+  if (!animArea || !shuffleNamesEl) {
+    executeKnockoutDraw(selectedFormat);
+    return;
+  }
+
+  animArea.classList.remove('hidden');
+
+  let steps = 0;
+  const maxSteps = 14;
+  const interval = setInterval(() => {
+    const p1 = players[Math.floor(Math.random() * players.length)];
+    let p2 = players[Math.floor(Math.random() * players.length)];
+    if (p2 === p1 && players.length > 1) {
+      p2 = players[(players.indexOf(p1) + 1) % players.length];
+    }
+    shuffleNamesEl.textContent = `${p1} × ${p2}`;
+    steps++;
+
+    if (steps >= maxSteps) {
+      clearInterval(interval);
+      animArea.classList.add('hidden');
+      executeKnockoutDraw(selectedFormat);
+    }
+  }, 90);
+}
+
+function executeKnockoutDraw(format) {
+  const shuffled = shuffleArray(players);
+  const ties = [];
+
+  if (shuffled.length <= 4) {
+    // Semifinais diretas (se forem 3 jogadores, o 4º slot é Folga/BYE)
+    const p1 = shuffled[0] || 'A definir';
+    const p2 = shuffled[1] || 'A definir';
+    const p3 = shuffled[2] || 'A definir';
+    const p4 = shuffled[3] || 'BYE (Avança direto)';
+
+    ties.push({
+      id: 'sf1',
+      stageId: 'semi',
+      stageTitle: 'Semifinais',
+      label: 'Semifinal 1',
+      home: p1,
+      away: p2,
+      leg1Home: null,
+      leg1Away: null,
+      leg2Home: null,
+      leg2Away: null,
+      penaltyWinner: null
+    });
+
+    ties.push({
+      id: 'sf2',
+      stageId: 'semi',
+      stageTitle: 'Semifinais',
+      label: 'Semifinal 2',
+      home: p3,
+      away: p4,
+      leg1Home: p4.startsWith('BYE') ? 1 : null,
+      leg1Away: p4.startsWith('BYE') ? 0 : null,
+      leg2Home: p4.startsWith('BYE') ? 0 : null,
+      leg2Away: p4.startsWith('BYE') ? 0 : null,
+      penaltyWinner: null
+    });
+
+    ties.push({
+      id: 'third',
+      stageId: 'third',
+      stageTitle: 'Disputa de 3º Lugar',
+      label: '3º e 4º Lugar',
+      home: 'Perdedor Semifinal 1',
+      away: 'Perdedor Semifinal 2',
+      leg1Home: null,
+      leg1Away: null,
+      leg2Home: null,
+      leg2Away: null,
+      penaltyWinner: null
+    });
+
+    ties.push({
+      id: 'final',
+      stageId: 'final',
+      stageTitle: 'Grande Final 🏆',
+      label: 'Grande Final',
+      home: 'Vencedor Semifinal 1',
+      away: 'Vencedor Semifinal 2',
+      leg1Home: null,
+      leg1Away: null,
+      leg2Home: null,
+      leg2Away: null,
+      penaltyWinner: null
+    });
+  } else {
+    // Até 8 jogadores: Quartas de Final -> Semifinais -> 3º Lugar -> Final
+    const slots = [...shuffled.slice(0, 8)];
+    while (slots.length < 8) {
+      slots.push('BYE (Avança direto)');
+    }
+
+    // Distribui BYEs para não caírem BYE vs BYE
+    const teamCount = shuffled.slice(0, 8).length;
+    const byeCount = 8 - teamCount;
+    const pairs = [];
+    for (let i = 0; i < 4; i++) {
+      const h = shuffled[i] || 'A definir';
+      const a = (i < byeCount) ? 'BYE (Avança direto)' : (shuffled[i + 4] || 'BYE (Avança direto)');
+      pairs.push([h, a]);
+    }
+
+    pairs.forEach((pair, idx) => {
+      const isBye = pair[1].startsWith('BYE');
+      ties.push({
+        id: `qf${idx + 1}`,
+        stageId: 'quarter',
+        stageTitle: 'Quartas de Final',
+        label: `Quartas ${idx + 1}`,
+        home: pair[0],
+        away: pair[1],
+        leg1Home: isBye ? 1 : null,
+        leg1Away: isBye ? 0 : null,
+        leg2Home: isBye ? 0 : null,
+        leg2Away: isBye ? 0 : null,
+        penaltyWinner: null
+      });
+    });
+
+    ties.push({
+      id: 'sf1',
+      stageId: 'semi',
+      stageTitle: 'Semifinais',
+      label: 'Semifinal 1',
+      home: 'Vencedor Quartas 1',
+      away: 'Vencedor Quartas 2',
+      leg1Home: null,
+      leg1Away: null,
+      leg2Home: null,
+      leg2Away: null,
+      penaltyWinner: null
+    });
+
+    ties.push({
+      id: 'sf2',
+      stageId: 'semi',
+      stageTitle: 'Semifinais',
+      label: 'Semifinal 2',
+      home: 'Vencedor Quartas 3',
+      away: 'Vencedor Quartas 4',
+      leg1Home: null,
+      leg1Away: null,
+      leg2Home: null,
+      leg2Away: null,
+      penaltyWinner: null
+    });
+
+    ties.push({
+      id: 'third',
+      stageId: 'third',
+      stageTitle: 'Disputa de 3º Lugar',
+      label: '3º e 4º Lugar',
+      home: 'Perdedor Semifinal 1',
+      away: 'Perdedor Semifinal 2',
+      leg1Home: null,
+      leg1Away: null,
+      leg2Home: null,
+      leg2Away: null,
+      penaltyWinner: null
+    });
+
+    ties.push({
+      id: 'final',
+      stageId: 'final',
+      stageTitle: 'Grande Final 🏆',
+      label: 'Grande Final',
+      home: 'Vencedor Semifinal 1',
+      away: 'Vencedor Semifinal 2',
+      leg1Home: null,
+      leg1Away: null,
+      leg2Home: null,
+      leg2Away: null,
+      penaltyWinner: null
+    });
+  }
+
+  knockoutState = {
+    format: format || 'single',
+    ties: ties
+  };
+
+  propagateKnockoutBracket();
+  hasCelebratedKnockout = false;
+  renderApp();
+  syncToCloud(true);
+  showToast('🎲 Sorteio do Mata-Mata realizado com sucesso!', 'success');
+}
+
+function isPlaceholderTeam(name) {
+  if (!name) return true;
+  return (
+    name.startsWith('Vencedor ') ||
+    name.startsWith('Perdedor ') ||
+    name === 'A definir'
+  );
+}
+
+function resolveTieOutcome(tie, format) {
+  if (!tie || isPlaceholderTeam(tie.home) || isPlaceholderTeam(tie.away)) {
+    return { winner: null, loser: null, isDrawPending: false, homeTotal: null, awayTotal: null };
+  }
+
+  if (tie.away.startsWith('BYE')) {
+    return { winner: tie.home, loser: tie.away, isDrawPending: false, homeTotal: 1, awayTotal: 0 };
+  }
+  if (tie.home.startsWith('BYE')) {
+    return { winner: tie.away, loser: tie.home, isDrawPending: false, homeTotal: 0, awayTotal: 1 };
+  }
+
+  const hasLeg1 = tie.leg1Home !== null && tie.leg1Away !== null && !isNaN(tie.leg1Home) && !isNaN(tie.leg1Away);
+  if (!hasLeg1) {
+    return { winner: null, loser: null, isDrawPending: false, homeTotal: null, awayTotal: null };
+  }
+
+  let homeTotal = parseInt(tie.leg1Home, 10);
+  let awayTotal = parseInt(tie.leg1Away, 10);
+
+  if (format === 'two_legs') {
+    const hasLeg2 = tie.leg2Home !== null && tie.leg2Away !== null && !isNaN(tie.leg2Home) && !isNaN(tie.leg2Away);
+    if (!hasLeg2) {
+      return { winner: null, loser: null, isDrawPending: false, homeTotal, awayTotal };
+    }
+    homeTotal += parseInt(tie.leg2Home, 10);
+    awayTotal += parseInt(tie.leg2Away, 10);
+  }
+
+  if (homeTotal > awayTotal) {
+    return { winner: tie.home, loser: tie.away, isDrawPending: false, homeTotal, awayTotal };
+  } else if (awayTotal > homeTotal) {
+    return { winner: tie.away, loser: tie.home, isDrawPending: false, homeTotal, awayTotal };
+  } else {
+    // Empate no placar ou agregado -> decide nos pênaltis
+    if (tie.penaltyWinner === 'home') {
+      return { winner: tie.home, loser: tie.away, isDrawPending: false, homeTotal, awayTotal };
+    } else if (tie.penaltyWinner === 'away') {
+      return { winner: tie.away, loser: tie.home, isDrawPending: false, homeTotal, awayTotal };
+    }
+    return { winner: null, loser: null, isDrawPending: true, homeTotal, awayTotal };
+  }
+}
+
+function propagateKnockoutBracket() {
+  if (!knockoutState || !Array.isArray(knockoutState.ties) || knockoutState.ties.length === 0) return;
+
+  const fmt = knockoutState.format || 'single';
+  const findTie = (id) => knockoutState.ties.find(t => t.id === id);
+
+  // Propaga Quartas -> Semifinais (se houver Quartas)
+  const qf1 = findTie('qf1');
+  const qf2 = findTie('qf2');
+  const qf3 = findTie('qf3');
+  const qf4 = findTie('qf4');
+  const sf1 = findTie('sf1');
+  const sf2 = findTie('sf2');
+
+  if (qf1 && qf2 && sf1) {
+    const r1 = resolveTieOutcome(qf1, fmt);
+    const r2 = resolveTieOutcome(qf2, fmt);
+    sf1.home = r1.winner || 'Vencedor Quartas 1';
+    sf1.away = r2.winner || 'Vencedor Quartas 2';
+  }
+  if (qf3 && qf4 && sf2) {
+    const r3 = resolveTieOutcome(qf3, fmt);
+    const r4 = resolveTieOutcome(qf4, fmt);
+    sf2.home = r3.winner || 'Vencedor Quartas 3';
+    sf2.away = r4.winner || 'Vencedor Quartas 4';
+  }
+
+  // Propaga Semifinais -> Disputa de 3º Lugar e Grande Final
+  const third = findTie('third');
+  const finalTie = findTie('final');
+
+  if (sf1 && sf2) {
+    const resSf1 = resolveTieOutcome(sf1, fmt);
+    const resSf2 = resolveTieOutcome(sf2, fmt);
+
+    if (finalTie) {
+      finalTie.home = resSf1.winner || 'Vencedor Semifinal 1';
+      finalTie.away = resSf2.winner || 'Vencedor Semifinal 2';
+    }
+
+    if (third) {
+      third.home = resSf1.loser || 'Perdedor Semifinal 1';
+      third.away = resSf2.loser || 'Perdedor Semifinal 2';
+      // Se um dos lados for BYE, o outro fica em 3º automaticamente
+      if (third.away.startsWith('BYE') && !isPlaceholderTeam(third.home)) {
+        third.leg1Home = 1;
+        third.leg1Away = 0;
+        if (fmt === 'two_legs') {
+          third.leg2Home = 0;
+          third.leg2Away = 0;
+        }
+      } else if (third.home.startsWith('BYE') && !isPlaceholderTeam(third.away)) {
+        third.leg1Home = 0;
+        third.leg1Away = 1;
+        if (fmt === 'two_legs') {
+          third.leg2Home = 0;
+          third.leg2Away = 0;
+        }
+      }
+    }
+  }
+}
+
+function renderKnockoutView() {
+  const container = document.getElementById('knockoutBracketContainer');
+  const formatSelect = document.getElementById('selectKnockoutFormat');
+  const koBanner = document.getElementById('knockoutChampionBanner');
+  const koChampName = document.getElementById('knockoutChampionName');
+  const koChampDetails = document.getElementById('knockoutChampionDetails');
+
+  if (!container) return;
+
+  if (formatSelect && knockoutState.format) {
+    formatSelect.value = knockoutState.format;
+  }
+
+  propagateKnockoutBracket();
+
+  if (!knockoutState.ties || knockoutState.ties.length === 0) {
+    if (koBanner) koBanner.classList.add('hidden');
+    container.innerHTML = `
+      <div class="knockout-empty-state">
+        <div class="knockout-empty-icon">🎲</div>
+        <h3 class="knockout-empty-title">Nenhum Sorteio de Mata-Mata Ativo</h3>
+        <p class="knockout-empty-desc">
+          Clique no botão <strong>"Sortear Confrontos"</strong> acima para embaralhar os ${players.length} jogadores inscritos e montar o chaveamento rumo à Grande Final!
+        </p>
+        <button type="button" class="btn btn-primary" onclick="handleDrawKnockout()">
+          <span class="btn-icon">🎲</span>
+          <span>Sortear Mata-Mata Agora</span>
+        </button>
+      </div>
+    `;
+    return;
+  }
+
+  const fmt = knockoutState.format || 'single';
+
+  // Verifica se a Grande Final tem campeão
+  const finalTie = knockoutState.ties.find(t => t.id === 'final');
+  const finalOutcome = resolveTieOutcome(finalTie, fmt);
+
+  if (koBanner && koChampName && koChampDetails) {
+    if (finalOutcome && finalOutcome.winner) {
+      koBanner.classList.remove('hidden');
+      koChampName.textContent = finalOutcome.winner.toUpperCase();
+      koChampDetails.textContent = `Conquistou a Grande Final contra ${finalOutcome.loser}!`;
+      if (!hasCelebratedKnockout && typeof confetti === 'function') {
+        hasCelebratedKnockout = true;
+        triggerConfetti();
+      }
+    } else {
+      koBanner.classList.add('hidden');
+      hasCelebratedKnockout = false;
+    }
+  }
+
+  // Agrupa por fase
+  const stageOrder = ['quarter', 'semi', 'third', 'final'];
+  container.innerHTML = '';
+
+  stageOrder.forEach(stId => {
+    const stageTies = knockoutState.ties.filter(t => t.stageId === stId);
+    if (stageTies.length === 0) return;
+
+    const stageCard = document.createElement('div');
+    stageCard.className = `knockout-stage-card ${stId === 'final' ? 'final-stage-card' : ''}`;
+
+    const stageTitle = stageTies[0].stageTitle;
+    const tagClass = stId === 'final' ? 'tag-final' : stId === 'semi' ? 'tag-turno' : 'tag-returno';
+    const tagText = fmt === 'two_legs' ? 'Ida e Volta' : 'Jogo Único';
+
+    let tiesHtml = '';
+
+    stageTies.forEach(t => {
+      const outcome = resolveTieOutcome(t, fmt);
+      const homeWinner = outcome.winner === t.home ? 'team-is-winner' : '';
+      const awayWinner = outcome.winner === t.away ? 'team-is-winner' : '';
+      const hasWinnerClass = outcome.winner ? 'has-winner' : '';
+
+      const l1h = t.leg1Home !== null ? t.leg1Home : '';
+      const l1a = t.leg1Away !== null ? t.leg1Away : '';
+      const l2h = t.leg2Home !== null ? t.leg2Home : '';
+      const l2a = t.leg2Away !== null ? t.leg2Away : '';
+
+      let statusText = '• Aguardando resultado';
+      if (outcome.winner) {
+        statusText = `✓ Classificado / Vencedor: ${outcome.winner}`;
+      } else if (outcome.isDrawPending) {
+        statusText = '⚠️ Empate! Selecione quem venceu nos pênaltis abaixo';
+      }
+
+      tiesHtml += `
+        <div class="knockout-tie-box ${hasWinnerClass}">
+          <div class="knockout-leg-label">${t.label} ${fmt === 'two_legs' ? '• Jogo de Ida' : ''}</div>
+          <div class="match-row">
+            <div class="team-box team-home ${homeWinner}">
+              <span class="team-name" title="${t.home}">${t.home}</span>
+            </div>
+
+            <div class="score-box-wrapper">
+              <div class="score-control">
+                <button type="button" class="score-btn" onclick="adjustKnockoutScore('${t.id}', 'leg1Home', -1)">−</button>
+                <input
+                  type="number"
+                  min="0"
+                  max="99"
+                  class="score-input ko-score-input"
+                  data-tie-id="${t.id}"
+                  data-field="leg1Home"
+                  placeholder="-"
+                  value="${l1h}"
+                />
+                <button type="button" class="score-btn" onclick="adjustKnockoutScore('${t.id}', 'leg1Home', 1)">+</button>
+              </div>
+              <span class="score-vs-divider">x</span>
+              <div class="score-control">
+                <button type="button" class="score-btn" onclick="adjustKnockoutScore('${t.id}', 'leg1Away', -1)">−</button>
+                <input
+                  type="number"
+                  min="0"
+                  max="99"
+                  class="score-input ko-score-input"
+                  data-tie-id="${t.id}"
+                  data-field="leg1Away"
+                  placeholder="-"
+                  value="${l1a}"
+                />
+                <button type="button" class="score-btn" onclick="adjustKnockoutScore('${t.id}', 'leg1Away', 1)">+</button>
+              </div>
+            </div>
+
+            <div class="team-box team-away ${awayWinner}">
+              <span class="team-name" title="${t.away}">${t.away}</span>
+            </div>
+          </div>
+
+          ${fmt === 'two_legs' ? `
+            <div class="knockout-leg-label" style="margin-top: 6px;">Jogo de Volta (Placar de ${t.home} vs ${t.away})</div>
+            <div class="match-row">
+              <div class="team-box team-home ${homeWinner}">
+                <span class="team-name" title="${t.home}">${t.home}</span>
+              </div>
+
+              <div class="score-box-wrapper">
+                <div class="score-control">
+                  <button type="button" class="score-btn" onclick="adjustKnockoutScore('${t.id}', 'leg2Home', -1)">−</button>
+                  <input
+                    type="number"
+                    min="0"
+                    max="99"
+                    class="score-input ko-score-input"
+                    data-tie-id="${t.id}"
+                    data-field="leg2Home"
+                    placeholder="-"
+                    value="${l2h}"
+                  />
+                  <button type="button" class="score-btn" onclick="adjustKnockoutScore('${t.id}', 'leg2Home', 1)">+</button>
+                </div>
+                <span class="score-vs-divider">x</span>
+                <div class="score-control">
+                  <button type="button" class="score-btn" onclick="adjustKnockoutScore('${t.id}', 'leg2Away', -1)">−</button>
+                  <input
+                    type="number"
+                    min="0"
+                    max="99"
+                    class="score-input ko-score-input"
+                    data-tie-id="${t.id}"
+                    data-field="leg2Away"
+                    placeholder="-"
+                    value="${l2a}"
+                  />
+                  <button type="button" class="score-btn" onclick="adjustKnockoutScore('${t.id}', 'leg2Away', 1)">+</button>
+                </div>
+              </div>
+
+              <div class="team-box team-away ${awayWinner}">
+                <span class="team-name" title="${t.away}">${t.away}</span>
+              </div>
+            </div>
+          ` : ''}
+
+          ${(outcome.isDrawPending || t.penaltyWinner) && !isPlaceholderTeam(t.home) && !isPlaceholderTeam(t.away) ? `
+            <div class="penalty-decision-bar">
+              <span class="penalty-label">⚽ Empate no Placar! Quem venceu nos Pênaltis?</span>
+              <div class="penalty-btns-row">
+                <button
+                  type="button"
+                  class="btn-penalty-pick ${t.penaltyWinner === 'home' ? 'active-penalty-winner' : ''}"
+                  onclick="setKnockoutPenaltyWinner('${t.id}', 'home')"
+                >
+                  🏆 ${t.home}
+                </button>
+                <button
+                  type="button"
+                  class="btn-penalty-pick ${t.penaltyWinner === 'away' ? 'active-penalty-winner' : ''}"
+                  onclick="setKnockoutPenaltyWinner('${t.id}', 'away')"
+                >
+                  🏆 ${t.away}
+                </button>
+              </div>
+            </div>
+          ` : ''}
+
+          <div class="match-status-bar">
+            <span class="match-status-text ${outcome.winner ? 'status-finished' : ''}">
+              ${statusText} ${fmt === 'two_legs' && outcome.homeTotal !== null ? `(Agregado: ${outcome.homeTotal} x ${outcome.awayTotal})` : ''}
+            </span>
+          </div>
+        </div>
+      `;
+    });
+
+    stageCard.innerHTML = `
+      <div class="knockout-stage-header">
+        <h3 class="knockout-stage-title">${stageTitle}</h3>
+        <span class="round-phase-tag ${tagClass}">${tagText}</span>
+      </div>
+      ${tiesHtml}
+    `;
+
+    container.appendChild(stageCard);
+  });
+
+  // Eventos de digitação direta nos inputs do Mata-Mata
+  const koInputs = container.querySelectorAll('.ko-score-input');
+  koInputs.forEach(inp => {
+    inp.addEventListener('input', handleKnockoutDirectInput);
+  });
+}
+
+window.adjustKnockoutScore = function(tieId, field, delta) {
+  const tie = knockoutState.ties.find(t => t.id === tieId);
+  if (!tie) return;
+
+  if (isPlaceholderTeam(tie.home) || isPlaceholderTeam(tie.away)) {
+    showToast('Defina primeiro os vencedores da fase anterior!', 'warning');
+    return;
+  }
+
+  if (field.startsWith('leg1')) {
+    if (tie.leg1Home === null) tie.leg1Home = 0;
+    if (tie.leg1Away === null) tie.leg1Away = 0;
+  } else {
+    if (tie.leg2Home === null) tie.leg2Home = 0;
+    if (tie.leg2Away === null) tie.leg2Away = 0;
+  }
+
+  let nextVal = (tie[field] || 0) + delta;
+  if (nextVal < 0) nextVal = 0;
+  if (nextVal > 99) nextVal = 99;
+  tie[field] = nextVal;
+  tie.penaltyWinner = null;
+
+  propagateKnockoutBracket();
+  renderKnockoutView();
+  syncToCloud(true);
+};
+
+function handleKnockoutDirectInput(e) {
+  const input = e.target;
+  const tieId = input.dataset.tieId;
+  const field = input.dataset.field;
+  const tie = knockoutState.ties.find(t => t.id === tieId);
+  if (!tie) return;
+
+  const raw = input.value.trim();
+  if (raw === '') {
+    tie[field] = null;
+  } else {
+    let val = parseInt(raw, 10);
+    if (isNaN(val) || val < 0) val = 0;
+    if (val > 99) val = 99;
+    tie[field] = val;
+    if (field === 'leg1Home' && tie.leg1Away === null) tie.leg1Away = 0;
+    if (field === 'leg1Away' && tie.leg1Home === null) tie.leg1Home = 0;
+    if (field === 'leg2Home' && tie.leg2Away === null) tie.leg2Away = 0;
+    if (field === 'leg2Away' && tie.leg2Home === null) tie.leg2Home = 0;
+  }
+
+  tie.penaltyWinner = null;
+  propagateKnockoutBracket();
+  syncToCloud(false);
+}
+
+window.setKnockoutPenaltyWinner = function(tieId, side) {
+  const tie = knockoutState.ties.find(t => t.id === tieId);
+  if (!tie) return;
+  tie.penaltyWinner = side;
+  propagateKnockoutBracket();
+  renderKnockoutView();
+  syncToCloud(true);
+};
+
+function copyKnockoutForWhatsApp() {
+  if (!knockoutState.ties || knockoutState.ties.length === 0) {
+    showToast('Realize primeiro o sorteio do Mata-Mata para copiar!', 'warning');
+    return;
+  }
+
+  const fmt = knockoutState.format || 'single';
+  let text = `⚡ *CHAVEAMENTO MATA-MATA eFOOTBALL* 🏆\n\n`;
+
+  knockoutState.ties.forEach(t => {
+    const out = resolveTieOutcome(t, fmt);
+    const s1 = t.leg1Home !== null && t.leg1Away !== null ? `${t.leg1Home} x ${t.leg1Away}` : 'vs';
+    const s2 = fmt === 'two_legs' && t.leg2Home !== null && t.leg2Away !== null ? ` (Volta: ${t.leg2Home} x ${t.leg2Away})` : '';
+    const winTag = out.winner ? ` ➔ ✅ *${out.winner}*` : '';
+    text += `🔹 *${t.label}:* ${t.home} ${s1} ${t.away}${s2}${winTag}\n`;
+  });
+
+  const finalTie = knockoutState.ties.find(t => t.id === 'final');
+  const finalOut = resolveTieOutcome(finalTie, fmt);
+  if (finalOut && finalOut.winner) {
+    text += `\n👑 *CAMPEÃO DO MATA-MATA:* ${finalOut.winner} 🏆\n`;
+  }
+
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(text).then(() => {
+      showToast('Chaveamento do Mata-Mata copiado para o WhatsApp!', 'success');
+    }).catch(() => fallbackCopyText(text));
+  } else {
+    fallbackCopyText(text);
+  }
+}
+
+/* ==========================================================================
+   Histórico de Campeonatos & Sala de Troféus
+   ========================================================================== */
+function openSaveHistoryModal(mode = 'league') {
+  pendingSaveMode = mode;
+  const modal = document.getElementById('saveHistoryModal');
+  const previewBox = document.getElementById('saveHistoryPreviewBox');
+  const titleInput = document.getElementById('inputHistoryTitle');
+  const chkReset = document.getElementById('chkResetAfterSave');
+
+  if (!modal || !previewBox || !titleInput) return;
+
+  const editionNum = tournamentHistory.length + 1;
+
+  if (mode === 'knockout') {
+    if (!knockoutState.ties || knockoutState.ties.length === 0) {
+      showToast('Realize o sorteio e preencha o Mata-Mata antes de salvar no histórico.', 'warning');
+      return;
+    }
+    const fmt = knockoutState.format || 'single';
+    const finalTie = knockoutState.ties.find(t => t.id === 'final');
+    const finalOut = resolveTieOutcome(finalTie, fmt);
+
+    if (!finalOut.winner) {
+      showToast('Defina o vencedor da Grande Final do Mata-Mata antes de salvar no histórico!', 'warning');
+      return;
+    }
+
+    titleInput.value = `${editionNum}ª Copa Mata-Mata eFootball`;
+    previewBox.innerHTML = `
+      <div><strong>Modo:</strong> Copa Mata-Mata (${fmt === 'two_legs' ? 'Ida e Volta' : 'Jogo Único'})</div>
+      <div><strong>🏆 Campeão:</strong> <span style="color: var(--accent-gold); font-weight: 800;">${finalOut.winner}</span></div>
+      <div><strong>🥈 Vice-Campeão:</strong> ${finalOut.loser}</div>
+    `;
+  } else {
+    const standings = calculateStandings();
+    const playedCount = matches.filter(m => m.homeScore !== null && m.awayScore !== null).length;
+
+    if (playedCount === 0) {
+      showToast('Preencha pelo menos uma partida antes de salvar o campeonato no histórico!', 'warning');
+      return;
+    }
+
+    const champion = standings[0];
+    const runnerUp = standings[1] || { name: '-' };
+
+    titleInput.value = `${editionNum}º Campeonato de Pontos Corridos`;
+    previewBox.innerHTML = `
+      <div><strong>Modo:</strong> Pontos Corridos (${playedCount}/${matches.length} jogos)</div>
+      <div><strong>🏆 Campeão / Líder:</strong> <span style="color: var(--accent-gold); font-weight: 800;">${champion.name} (${champion.pts} pts)</span></div>
+      <div><strong>🥈 Vice-Líder:</strong> ${runnerUp.name} (${runnerUp.pts || 0} pts)</div>
+    `;
+  }
+
+  if (chkReset) chkReset.checked = false;
+  modal.classList.remove('hidden');
+
+  modal.onclick = (e) => {
+    if (e.target === modal) closeSaveHistoryModal();
+  };
+}
+
+function closeSaveHistoryModal() {
+  const modal = document.getElementById('saveHistoryModal');
+  if (modal) modal.classList.add('hidden');
+}
+
+function confirmSaveToHistory() {
+  const titleInput = document.getElementById('inputHistoryTitle');
+  const chkReset = document.getElementById('chkResetAfterSave');
+  const customTitle = (titleInput && titleInput.value.trim()) || `${tournamentHistory.length + 1}º Torneio eFootball`;
+
+  const now = new Date();
+  const dateStr = now.toLocaleDateString('pt-BR', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit'
+  });
+
+  if (pendingSaveMode === 'knockout') {
+    const fmt = knockoutState.format || 'single';
+    const finalTie = knockoutState.ties.find(t => t.id === 'final');
+    const finalOut = resolveTieOutcome(finalTie, fmt);
+    const thirdTie = knockoutState.ties.find(t => t.id === 'third');
+    const thirdOut = resolveTieOutcome(thirdTie, fmt);
+
+    let totalGoals = 0;
+    knockoutState.ties.forEach(t => {
+      if (t.leg1Home !== null && t.leg1Away !== null) totalGoals += (t.leg1Home + t.leg1Away);
+      if (t.leg2Home !== null && t.leg2Away !== null) totalGoals += (t.leg2Home + t.leg2Away);
+    });
+
+    const record = {
+      id: 'hist_' + Date.now(),
+      title: customTitle,
+      date: dateStr,
+      mode: 'knockout',
+      champion: finalOut.winner || '-',
+      runnerUp: finalOut.loser || '-',
+      thirdPlace: (thirdOut && thirdOut.winner) || '-',
+      totalGoals: totalGoals,
+      knockoutSnapshot: JSON.parse(JSON.stringify(knockoutState))
+    };
+
+    tournamentHistory.unshift(record);
+
+    if (chkReset && chkReset.checked) {
+      knockoutState = { format: fmt, ties: [] };
+      hasCelebratedKnockout = false;
+    }
+  } else {
+    const standings = calculateStandings();
+    const playedMatches = matches.filter(m => m.homeScore !== null && m.awayScore !== null);
+    let totalGoals = 0;
+    playedMatches.forEach(m => {
+      totalGoals += (m.homeScore + m.awayScore);
+    });
+
+    const champion = standings[0] || { name: '-', pts: 0 };
+    const runnerUp = standings[1] || { name: '-', pts: 0 };
+    const thirdPlace = standings[2] || { name: '-', pts: 0 };
+
+    const record = {
+      id: 'hist_' + Date.now(),
+      title: customTitle,
+      date: dateStr,
+      mode: 'league',
+      champion: champion.name,
+      championPts: champion.pts,
+      runnerUp: runnerUp.name,
+      runnerUpPts: runnerUp.pts,
+      thirdPlace: thirdPlace.name,
+      totalGoals: totalGoals,
+      matchesPlayed: `${playedMatches.length}/${matches.length}`,
+      standingsSnapshot: JSON.parse(JSON.stringify(standings)),
+      matchesSnapshot: JSON.parse(JSON.stringify(matches))
+    };
+
+    tournamentHistory.unshift(record);
+
+    if (chkReset && chkReset.checked) {
+      matches = generateRoundRobinSchedule(players);
+      hasCelebrated = false;
+    }
+  }
+
+  closeSaveHistoryModal();
+  renderApp();
+  syncToCloud(true);
+  triggerConfetti();
+  showToast(`🏅 "${customTitle}" salvo na Sala de Troféus!`, 'success');
+}
+
+function renderHistoryView() {
+  const hallGrid = document.getElementById('hallOfFameGrid');
+  const listContainer = document.getElementById('historyListContainer');
+  const historyBadge = document.getElementById('historyCountBadge');
+
+  if (historyBadge) {
+    historyBadge.textContent = tournamentHistory.length;
+  }
+
+  if (!hallGrid || !listContainer) return;
+
+  // Calcula contagem de títulos para cada jogador
+  const trophyMap = {};
+  players.forEach(p => {
+    trophyMap[p] = { name: p, titles: 0, vices: 0 };
+  });
+
+  tournamentHistory.forEach(h => {
+    if (h.champion && h.champion !== '-') {
+      if (!trophyMap[h.champion]) {
+        trophyMap[h.champion] = { name: h.champion, titles: 0, vices: 0 };
+      }
+      trophyMap[h.champion].titles += 1;
+    }
+    if (h.runnerUp && h.runnerUp !== '-' && !h.runnerUp.startsWith('BYE')) {
+      if (!trophyMap[h.runnerUp]) {
+        trophyMap[h.runnerUp] = { name: h.runnerUp, titles: 0, vices: 0 };
+      }
+      trophyMap[h.runnerUp].vices += 1;
+    }
+  });
+
+  const ranking = Object.values(trophyMap).sort((a, b) => {
+    if (b.titles !== a.titles) return b.titles - a.titles;
+    if (b.vices !== a.vices) return b.vices - a.vices;
+    return a.name.localeCompare(b.name);
+  });
+
+  hallGrid.innerHTML = '';
+  const maxTitles = ranking.length > 0 ? ranking[0].titles : 0;
+
+  ranking.forEach(r => {
+    const isTop = r.titles > 0 && r.titles === maxTitles;
+    const card = document.createElement('div');
+    card.className = `trophy-player-card ${isTop ? 'top-champion' : ''}`;
+    card.innerHTML = `
+      <div class="trophy-count-circle" title="${r.titles} títulos conquistados">
+        <span>🏆</span>
+        <small style="font-size: 0.85rem;">${r.titles}</small>
+      </div>
+      <div class="trophy-player-info">
+        <span class="trophy-player-name">${r.name}</span>
+        <span class="trophy-player-sub">🥇 ${r.titles} ${r.titles === 1 ? 'Título' : 'Títulos'} • 🥈 ${r.vices} ${r.vices === 1 ? 'Vice' : 'Vices'}</span>
+      </div>
+    `;
+    hallGrid.appendChild(card);
+  });
+
+  // Renderiza lista de campeonatos salvos
+  if (tournamentHistory.length === 0) {
+    listContainer.innerHTML = `
+      <div class="knockout-empty-state">
+        <div class="knockout-empty-icon">🏅</div>
+        <h3 class="knockout-empty-title">Nenhum Campeonato Arquivado Ainda</h3>
+        <p class="knockout-empty-desc">
+          Quando terminar um campeonato de Pontos Corridos ou uma Copa Mata-Mata, clique em <strong>"Salvar no Histórico"</strong> para registrar o campeão e a tabela aqui para sempre!
+        </p>
+      </div>
+    `;
+    return;
+  }
+
+  listContainer.innerHTML = '';
+
+  tournamentHistory.forEach(item => {
+    const card = document.createElement('div');
+    card.className = 'history-item-card';
+
+    const isKO = item.mode === 'knockout';
+    const modeLabel = isKO ? '⚡ Mata-Mata' : '🏆 Pontos Corridos';
+    const modeClass = isKO ? 'mode-knockout' : 'mode-league';
+
+    card.innerHTML = `
+      <div>
+        <div class="history-card-top">
+          <div>
+            <h3 class="history-edition-title">${item.title}</h3>
+            <div class="history-date-text">📅 Salvo em ${item.date}</div>
+          </div>
+          <span class="history-mode-badge ${modeClass}">${modeLabel}</span>
+        </div>
+
+        <div class="history-podium-box" style="margin-top: 12px;">
+          <div class="podium-line">
+            <span>🥇 Campeão:</span>
+            <span class="podium-champion">👑 ${item.champion} ${item.championPts !== undefined ? `(${item.championPts} pts)` : ''}</span>
+          </div>
+          <div class="podium-line">
+            <span>🥈 Vice-Campeão:</span>
+            <strong>${item.runnerUp} ${item.runnerUpPts !== undefined ? `(${item.runnerUpPts} pts)` : ''}</strong>
+          </div>
+          <div class="podium-line">
+            <span>⚽ Total de Gols:</span>
+            <span>${item.totalGoals || 0} gols</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="history-card-actions">
+        <button type="button" class="btn btn-secondary" onclick="openHistoryDetailModal('${item.id}')">
+          <span>🔍 Ver Detalhes</span>
+        </button>
+        <button type="button" class="btn-remove-player" onclick="confirmDeleteHistory('${item.id}')" title="Excluir este registro do histórico">
+          🗑️
+        </button>
+      </div>
+    `;
+
+    listContainer.appendChild(card);
+  });
+}
+
+window.openHistoryDetailModal = function(historyId) {
+  const item = tournamentHistory.find(h => h.id === historyId);
+  const modal = document.getElementById('historyDetailModal');
+  const titleEl = document.getElementById('historyDetailTitle');
+  const subEl = document.getElementById('historyDetailSubtitle');
+  const bodyEl = document.getElementById('historyDetailBody');
+
+  if (!item || !modal || !bodyEl) return;
+
+  titleEl.textContent = item.title;
+  subEl.textContent = `Concluído em ${item.date} • Campeão: ${item.champion}`;
+
+  if (item.mode === 'knockout' && item.knockoutSnapshot) {
+    const fmt = item.knockoutSnapshot.format || 'single';
+    let koHtml = '<div class="detail-matches-list">';
+    (item.knockoutSnapshot.ties || []).forEach(t => {
+      const s1 = t.leg1Home !== null && t.leg1Away !== null ? `${t.leg1Home} x ${t.leg1Away}` : '-';
+      const s2 = fmt === 'two_legs' && t.leg2Home !== null && t.leg2Away !== null ? ` (Volta: ${t.leg2Home} x ${t.leg2Away})` : '';
+      koHtml += `
+        <div class="detail-match-pill">
+          <span><strong>${t.label}:</strong> ${t.home} vs ${t.away}</span>
+          <strong style="color: var(--accent-cyan);">${s1}${s2}</strong>
+        </div>
+      `;
+    });
+    koHtml += '</div>';
+    bodyEl.innerHTML = koHtml;
+  } else {
+    let tableRows = '';
+    (item.standingsSnapshot || []).forEach((p, idx) => {
+      tableRows += `
+        <tr>
+          <td><strong>${idx + 1}º</strong></td>
+          <td style="text-align:left; font-weight:700;">${p.name}</td>
+          <td class="pts-cell">${p.pts}</td>
+          <td>${p.j}</td>
+          <td>${p.v}</td>
+          <td>${p.e}</td>
+          <td>${p.d}</td>
+          <td>${p.gp}</td>
+          <td>${p.gc}</td>
+          <td>${p.sg > 0 ? '+' + p.sg : p.sg}</td>
+        </tr>
+      `;
+    });
+
+    let matchesPills = '';
+    (item.matchesSnapshot || []).forEach(m => {
+      const sc = m.homeScore !== null && m.awayScore !== null ? `${m.homeScore} x ${m.awayScore}` : 'Não realizado';
+      matchesPills += `
+        <div class="detail-match-pill">
+          <span>R${m.round}: ${m.home} × ${m.away}</span>
+          <strong style="color: var(--accent-cyan);">${sc}</strong>
+        </div>
+      `;
+    });
+
+    bodyEl.innerHTML = `
+      <div class="table-responsive" style="margin-bottom: 16px;">
+        <table class="standings-table">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th style="text-align:left;">Jogador</th>
+              <th>PTS</th>
+              <th>J</th>
+              <th>V</th>
+              <th>E</th>
+              <th>D</th>
+              <th>GP</th>
+              <th>GC</th>
+              <th>SG</th>
+            </tr>
+          </thead>
+          <tbody>${tableRows}</tbody>
+        </table>
+      </div>
+      <h4 class="section-minor-title">Jogos Registrados</h4>
+      <div class="detail-matches-list">${matchesPills}</div>
+    `;
+  }
+
+  modal.classList.remove('hidden');
+  modal.onclick = (e) => {
+    if (e.target === modal) closeHistoryDetailModal();
+  };
+};
+
+function closeHistoryDetailModal() {
+  const modal = document.getElementById('historyDetailModal');
+  if (modal) modal.classList.add('hidden');
+}
+
+window.confirmDeleteHistory = function(historyId) {
+  const item = tournamentHistory.find(h => h.id === historyId);
+  if (!item) return;
+
+  openConfirmModal({
+    title: 'Excluir Campeonato do Histórico?',
+    message: `Tem certeza de que deseja remover "${item.title}" da Sala de Troféus?`,
+    icon: '🗑️',
+    confirmText: 'Sim, excluir',
+    cancelText: 'Cancelar',
+    onConfirm: () => {
+      tournamentHistory = tournamentHistory.filter(h => h.id !== historyId);
+      renderApp();
+      syncToCloud(true);
+      showToast('Registro removido do histórico.', 'info');
+    }
+  });
+};
+
+/* ==========================================================================
    Configuração de Eventos
    ========================================================================== */
+function switchMainTab(targetView) {
+  const navButtons = [
+    { btn: document.getElementById('navTabTournament'), view: document.getElementById('viewTournament'), key: 'tournament' },
+    { btn: document.getElementById('navTabKnockout'), view: document.getElementById('viewKnockout'), key: 'knockout' },
+    { btn: document.getElementById('navTabHistory'), view: document.getElementById('viewHistory'), key: 'history' },
+    { btn: document.getElementById('navTabPlayers'), view: document.getElementById('viewPlayers'), key: 'players' }
+  ];
+
+  navButtons.forEach(item => {
+    if (!item.btn || !item.view) return;
+    if (item.key === targetView) {
+      item.btn.classList.add('active');
+      item.view.classList.remove('hidden');
+    } else {
+      item.btn.classList.remove('active');
+      item.view.classList.add('hidden');
+    }
+  });
+
+  activeTab = targetView;
+}
+
 function setupEventListeners() {
+  // Botão e Modal de Identificação do Usuário
+  const btnUserProfile = document.getElementById('btnUserProfile');
+  const btnCloseUserModal = document.getElementById('btnCloseUserModal');
+  const btnSaveUserName = document.getElementById('btnSaveUserName');
+  const inputCustomUserName = document.getElementById('inputCustomUserName');
+
+  if (btnUserProfile) {
+    btnUserProfile.addEventListener('click', openUserProfileModal);
+  }
+  if (btnCloseUserModal) {
+    btnCloseUserModal.addEventListener('click', closeUserProfileModal);
+  }
+  if (btnSaveUserName) {
+    btnSaveUserName.addEventListener('click', handleSaveCustomUserName);
+  }
+  if (inputCustomUserName) {
+    inputCustomUserName.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        handleSaveCustomUserName();
+      }
+    });
+  }
+
+  // Navegação entre as 4 Abas Principais
   const tabTournament = document.getElementById('navTabTournament');
+  const tabKnockout = document.getElementById('navTabKnockout');
+  const tabHistory = document.getElementById('navTabHistory');
   const tabPlayers = document.getElementById('navTabPlayers');
-  const viewTournament = document.getElementById('viewTournament');
-  const viewPlayers = document.getElementById('viewPlayers');
 
-  if (tabTournament && tabPlayers && viewTournament && viewPlayers) {
-    tabTournament.addEventListener('click', () => {
-      tabTournament.classList.add('active');
-      tabPlayers.classList.remove('active');
-      viewTournament.classList.remove('hidden');
-      viewPlayers.classList.add('hidden');
-      activeTab = 'tournament';
-    });
+  if (tabTournament) tabTournament.addEventListener('click', () => switchMainTab('tournament'));
+  if (tabKnockout) tabKnockout.addEventListener('click', () => switchMainTab('knockout'));
+  if (tabHistory) tabHistory.addEventListener('click', () => switchMainTab('history'));
+  if (tabPlayers) tabPlayers.addEventListener('click', () => switchMainTab('players'));
 
-    tabPlayers.addEventListener('click', () => {
-      tabPlayers.classList.add('active');
-      tabTournament.classList.remove('active');
-      viewPlayers.classList.remove('hidden');
-      viewTournament.classList.add('hidden');
-      activeTab = 'players';
+  // Botões do Modo Mata-Mata
+  const btnDrawKnockout = document.getElementById('btnDrawKnockout');
+  const selectKnockoutFormat = document.getElementById('selectKnockoutFormat');
+  const btnShareKnockoutWhatsApp = document.getElementById('btnShareKnockoutWhatsApp');
+  const btnKnockoutCelebration = document.getElementById('btnKnockoutCelebration');
+
+  if (btnDrawKnockout) {
+    btnDrawKnockout.addEventListener('click', handleDrawKnockout);
+  }
+  if (selectKnockoutFormat) {
+    selectKnockoutFormat.addEventListener('change', (e) => {
+      knockoutState.format = e.target.value;
+      propagateKnockoutBracket();
+      renderKnockoutView();
+      syncToCloud(true);
     });
+  }
+  if (btnShareKnockoutWhatsApp) {
+    btnShareKnockoutWhatsApp.addEventListener('click', copyKnockoutForWhatsApp);
+  }
+  if (btnKnockoutCelebration) {
+    btnKnockoutCelebration.addEventListener('click', () => {
+      triggerConfetti();
+      showToast('🎉 Parabéns ao Campeão do Mata-Mata!', 'success');
+    });
+  }
+
+  // Botões e Modal de Histórico de Campeonatos
+  const btnSaveLeagueHistory = document.getElementById('btnSaveLeagueHistory');
+  const btnSaveBannerHistory = document.getElementById('btnSaveBannerHistory');
+  const btnSaveKnockoutHistory = document.getElementById('btnSaveKnockoutHistory');
+  const btnQuickSaveCurrent = document.getElementById('btnQuickSaveCurrent');
+  const btnCancelSaveHistory = document.getElementById('btnCancelSaveHistory');
+  const btnConfirmSaveHistory = document.getElementById('btnConfirmSaveHistory');
+  const btnCloseHistoryDetail = document.getElementById('btnCloseHistoryDetail');
+
+  if (btnSaveLeagueHistory) {
+    btnSaveLeagueHistory.addEventListener('click', () => {
+      openSaveHistoryModal(activeTab === 'knockout' ? 'knockout' : 'league');
+    });
+  }
+  if (btnSaveBannerHistory) {
+    btnSaveBannerHistory.addEventListener('click', () => openSaveHistoryModal('league'));
+  }
+  if (btnSaveKnockoutHistory) {
+    btnSaveKnockoutHistory.addEventListener('click', () => openSaveHistoryModal('knockout'));
+  }
+  if (btnQuickSaveCurrent) {
+    btnQuickSaveCurrent.addEventListener('click', () => openSaveHistoryModal('league'));
+  }
+  if (btnCancelSaveHistory) {
+    btnCancelSaveHistory.addEventListener('click', closeSaveHistoryModal);
+  }
+  if (btnConfirmSaveHistory) {
+    btnConfirmSaveHistory.addEventListener('click', confirmSaveToHistory);
+  }
+  if (btnCloseHistoryDetail) {
+    btnCloseHistoryDetail.addEventListener('click', closeHistoryDetailModal);
   }
 
   const btnAdd = document.getElementById('btnAddPlayer');
@@ -1290,7 +2635,7 @@ function setupEventListeners() {
     btnReset.addEventListener('click', () => {
       openConfirmModal({
         title: 'Zerar todo o Campeonato?',
-        message: 'Todos os placares preenchidos e a classificação serão redefinidos para o início em tempo real para todos os jogadores. Deseja continuar?',
+        message: 'Todos os placares preenchidos e a classificação serão redefinidos para o início em tempo real para todos os jogadores. (Dica: você pode salvar no Histórico antes de zerar!). Deseja continuar?',
         icon: '⚠️',
         confirmText: 'Sim, zerar tudo',
         cancelText: 'Cancelar',

@@ -36,6 +36,18 @@
       </div>
 
       <div class="header-actions">
+        <button id="btnUserProfile" class="btn btn-user-profile" title="Definir ou trocar seu nome de usuário">
+          <span class="user-profile-avatar" id="headerUserAvatar">👤</span>
+          <div class="user-profile-text">
+            <span class="user-profile-label">Acessando como</span>
+            <span class="user-profile-name" id="headerUserName">Identificar-se</span>
+          </div>
+          <span class="user-profile-change">Trocar</span>
+        </button>
+        <button id="btnSaveLeagueHistory" class="btn btn-gold-outline" title="Salvar campeonato atual no histórico de campeões">
+          <span class="btn-icon">💾</span>
+          <span>Salvar no Histórico</span>
+        </button>
         <button id="btnShareWhatsApp" class="btn btn-secondary" title="Copiar classificação para WhatsApp">
           <span class="btn-icon">📋</span>
           <span>Copiar Classificação</span>
@@ -51,7 +63,16 @@
     <nav class="main-nav-tabs">
       <button id="navTabTournament" class="main-tab-btn active" data-view="tournament">
         <span class="tab-btn-icon">🏆</span>
-        <span>Tabela & Jogos</span>
+        <span>Pontos Corridos</span>
+      </button>
+      <button id="navTabKnockout" class="main-tab-btn" data-view="knockout">
+        <span class="tab-btn-icon">⚡</span>
+        <span>Mata-Mata (Sorteio)</span>
+      </button>
+      <button id="navTabHistory" class="main-tab-btn" data-view="history">
+        <span class="tab-btn-icon">🏅</span>
+        <span>Histórico & Campeões</span>
+        <span id="historyCountBadge" class="tab-badge">0</span>
       </button>
       <button id="navTabPlayers" class="main-tab-btn" data-view="players">
         <span class="tab-btn-icon">👥</span>
@@ -70,9 +91,14 @@
           <h2 id="championName" class="champion-name">SIDNEY</h2>
           <p id="championDetails" class="champion-details">Completou as rodadas no topo da tabela!</p>
         </div>
-        <button id="btnCelebration" class="btn btn-gold">
-          <span>🎉 Soltar Confetes</span>
-        </button>
+        <div class="champion-banner-actions">
+          <button id="btnSaveBannerHistory" class="btn btn-secondary">
+            <span>💾 Salvar no Histórico</span>
+          </button>
+          <button id="btnCelebration" class="btn btn-gold">
+            <span>🎉 Soltar Confetes</span>
+          </button>
+        </div>
       </section>
 
       <!-- Grid Principal: Tabela e Estatísticas -->
@@ -281,6 +307,110 @@
       </section>
     </div>
 
+    <!-- ABA 3: MODO MATA-MATA COM SORTEIO AO VIVO -->
+    <div id="viewKnockout" class="view-content hidden">
+      <!-- Banner do Campeão do Mata-Mata -->
+      <section id="knockoutChampionBanner" class="champion-banner hidden">
+        <div class="trophy-glow">🏆</div>
+        <div class="champion-content">
+          <span class="champion-tag">CAMPEÃO DO MATA-MATA</span>
+          <h2 id="knockoutChampionName" class="champion-name">SIDNEY</h2>
+          <p id="knockoutChampionDetails" class="champion-details">Venceu a Grande Final do Mata-Mata!</p>
+        </div>
+        <div class="champion-banner-actions">
+          <button id="btnSaveKnockoutHistory" class="btn btn-secondary">
+            <span>💾 Salvar no Histórico</span>
+          </button>
+          <button id="btnKnockoutCelebration" class="btn btn-gold">
+            <span>🎉 Soltar Confetes</span>
+          </button>
+        </div>
+      </section>
+
+      <section class="card knockout-card">
+        <div class="card-header knockout-header">
+          <div class="card-title-group">
+            <span class="card-icon">⚡</span>
+            <div>
+              <h2 class="card-title">Copa Mata-Mata & Sorteio Ao Vivo</h2>
+              <span class="card-subtitle">Sorteie os confrontos eliminatórios e decida quem avança para a Grande Final!</span>
+            </div>
+          </div>
+
+          <div class="knockout-controls">
+            <div class="knockout-format-group">
+              <label for="selectKnockoutFormat" class="format-label">Formato:</label>
+              <select id="selectKnockoutFormat" class="select-input">
+                <option value="single">Jogo Único</option>
+                <option value="two_legs">Ida e Volta (Agregado)</option>
+              </select>
+            </div>
+            <button type="button" id="btnDrawKnockout" class="btn btn-primary">
+              <span class="btn-icon">🎲</span>
+              <span>Sortear Confrontos</span>
+            </button>
+            <button type="button" id="btnShareKnockoutWhatsApp" class="btn btn-secondary" title="Copiar chaveamento para WhatsApp">
+              <span class="btn-icon">📋</span>
+              <span>Copiar Mata-Mata</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Animação de Sorteio Ao Vivo -->
+        <div id="drawAnimationArea" class="draw-animation-area hidden">
+          <div class="draw-spinner-icon">🎲</div>
+          <h3 class="draw-animation-title">Sorteando Confrontos...</h3>
+          <div id="drawShuffleNames" class="draw-shuffle-names">Sidney × Pedro</div>
+        </div>
+
+        <!-- Container do Chaveamento -->
+        <div id="knockoutBracketContainer" class="knockout-bracket-container">
+          <!-- Renderizado dinamicamente via JS -->
+        </div>
+      </section>
+    </div>
+
+    <!-- ABA 4: HISTÓRICO DE CAMPEONATOS E SALA DE TROFÉUS -->
+    <div id="viewHistory" class="view-content hidden">
+      <!-- Sala de Troféus / Ranking Geral de Títulos -->
+      <section class="card hall-of-fame-card">
+        <div class="card-header">
+          <div class="card-title-group">
+            <span class="card-icon">👑</span>
+            <div>
+              <h2 class="card-title">Sala de Troféus (Ranking Geral de Títulos)</h2>
+              <span class="card-subtitle">Contagem histórica de títulos acumulados em todos os campeonatos salvos</span>
+            </div>
+          </div>
+          <button type="button" id="btnQuickSaveCurrent" class="btn btn-gold-outline">
+            <span class="btn-icon">💾</span>
+            <span>Arquivar Campeonato Atual</span>
+          </button>
+        </div>
+
+        <div id="hallOfFameGrid" class="hall-of-fame-grid">
+          <!-- Renderizado dinamicamente via JS -->
+        </div>
+      </section>
+
+      <!-- Lista de Campeonatos Anteriores Salvos -->
+      <section class="card history-list-card">
+        <div class="card-header">
+          <div class="card-title-group">
+            <span class="card-icon">📜</span>
+            <div>
+              <h2 class="card-title">Campeonatos Anteriores</h2>
+              <span class="card-subtitle">Histórico completo de tabelas, finais e resultados passados</span>
+            </div>
+          </div>
+        </div>
+
+        <div id="historyListContainer" class="history-list-container">
+          <!-- Renderizado dinamicamente via JS -->
+        </div>
+      </section>
+    </div>
+
     <!-- Rodapé -->
     <footer class="footer">
       <p>eFootball League Manager • Desenvolvido para torneios competitivos entre amigos</p>
@@ -301,6 +431,108 @@
       <div class="modal-actions">
         <button id="modalBtnCancel" class="btn btn-secondary">Cancelar</button>
         <button id="modalBtnConfirm" class="btn btn-danger">Confirmar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Dedicado para Salvar Campeonato no Histórico -->
+  <div id="saveHistoryModal" class="modal-overlay hidden" role="dialog" aria-modal="true">
+    <div class="modal-box user-modal-box">
+      <div class="modal-header">
+        <div class="modal-icon-badge gold-icon-badge">🏆</div>
+        <div>
+          <h3 class="modal-title">Salvar no Histórico</h3>
+          <p class="modal-subtitle">Registre este campeonato na Sala de Troféus</p>
+        </div>
+      </div>
+
+      <div class="modal-body">
+        <div id="saveHistoryPreviewBox" class="save-history-preview">
+          <!-- Preenchido via JS -->
+        </div>
+
+        <label class="user-modal-section-label" for="inputHistoryTitle">Nome / Edição do Campeonato:</label>
+        <input
+          type="text"
+          id="inputHistoryTitle"
+          class="text-input custom-user-input"
+          placeholder="Ex: 1ª Copa eFootball de Domingo..."
+          maxlength="40"
+          autocomplete="off"
+        />
+
+        <label class="checkbox-reset-after">
+          <input type="checkbox" id="chkResetAfterSave" />
+          <span>Zerar placares atuais após salvar para iniciar o próximo campeonato</span>
+        </label>
+      </div>
+
+      <div class="modal-actions">
+        <button type="button" id="btnCancelSaveHistory" class="btn btn-secondary">Cancelar</button>
+        <button type="button" id="btnConfirmSaveHistory" class="btn btn-gold">💾 Salvar Campeonato</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Dedicado de Detalhes de Campeonato Anterior -->
+  <div id="historyDetailModal" class="modal-overlay hidden" role="dialog" aria-modal="true">
+    <div class="modal-box history-detail-modal-box">
+      <div class="modal-header">
+        <div class="modal-icon-badge gold-icon-badge">📜</div>
+        <div>
+          <h3 class="modal-title" id="historyDetailTitle">Detalhes do Campeonato</h3>
+          <p class="modal-subtitle" id="historyDetailSubtitle">Data e Informações</p>
+        </div>
+      </div>
+
+      <div class="modal-body history-detail-body" id="historyDetailBody">
+        <!-- Renderizado dinamicamente via JS -->
+      </div>
+
+      <div class="modal-actions">
+        <button type="button" id="btnCloseHistoryDetail" class="btn btn-secondary">Fechar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Dedicado de Identificação do Usuário (Substitui prompt()) -->
+  <div id="userProfileModal" class="modal-overlay hidden" role="dialog" aria-modal="true">
+    <div class="modal-box user-modal-box">
+      <div class="modal-header">
+        <div class="modal-icon-badge user-icon-badge">👤</div>
+        <div>
+          <h3 class="modal-title">Quem está usando?</h3>
+          <p class="modal-subtitle">Escolha seu perfil de jogador ou digite seu nome</p>
+        </div>
+      </div>
+
+      <div class="modal-body">
+        <label class="user-modal-section-label">Selecionar Jogador da Liga:</label>
+        <div id="quickSelectPlayersGrid" class="quick-select-players-grid">
+          <!-- Renderizado dinamicamente via JS -->
+        </div>
+
+        <div class="user-modal-divider">
+          <span>ou digite outro nome</span>
+        </div>
+
+        <form id="formCustomUserName" class="custom-user-form" onsubmit="return false;">
+          <input
+            type="text"
+            id="inputCustomUserName"
+            class="text-input custom-user-input"
+            placeholder="Digite seu nome aqui..."
+            maxlength="20"
+            autocomplete="off"
+          />
+          <button type="button" id="btnSaveUserName" class="btn btn-primary">
+            Confirmar Nome
+          </button>
+        </form>
+      </div>
+
+      <div class="modal-actions">
+        <button type="button" id="btnCloseUserModal" class="btn btn-secondary">Fechar</button>
       </div>
     </div>
   </div>
