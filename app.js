@@ -8,30 +8,36 @@
 const PLAYERS = ['Sidney', 'Miguel', 'Gabriel', 'Pedro'];
 
 // Definição das 6 Rodadas (Turno: 1-3 | Returno: 4-6)
-// Algoritmo Round-Robin para 4 participantes com mandos de campo equilibrados
+// Atualizado com os jogos e resultados reais das Rodadas 1 e 2
 const DEFAULT_MATCHES = [
   // TURNO (Ida)
-  { id: 1, round: 1, phase: 'turno', home: 'Sidney', away: 'Pedro', homeScore: null, awayScore: null },
-  { id: 2, round: 1, phase: 'turno', home: 'Miguel', away: 'Gabriel', homeScore: null, awayScore: null },
+  // Rodada 1 (Realizada)
+  { id: 1, round: 1, phase: 'turno', home: 'Miguel', away: 'Pedro', homeScore: 1, awayScore: 2 },
+  { id: 2, round: 1, phase: 'turno', home: 'Gabriel', away: 'Sidney', homeScore: 0, awayScore: 4 },
 
-  { id: 3, round: 2, phase: 'turno', home: 'Pedro', away: 'Gabriel', homeScore: null, awayScore: null },
-  { id: 4, round: 2, phase: 'turno', home: 'Sidney', away: 'Miguel', homeScore: null, awayScore: null },
+  // Rodada 2 (Realizada)
+  { id: 3, round: 2, phase: 'turno', home: 'Gabriel', away: 'Pedro', homeScore: 0, awayScore: 0 },
+  { id: 4, round: 2, phase: 'turno', home: 'Miguel', away: 'Sidney', homeScore: 2, awayScore: 2 },
 
-  { id: 5, round: 3, phase: 'turno', home: 'Miguel', away: 'Pedro', homeScore: null, awayScore: null },
-  { id: 6, round: 3, phase: 'turno', home: 'Gabriel', away: 'Sidney', homeScore: null, awayScore: null },
+  // Rodada 3 (Próxima para completar o Turno de Ida)
+  { id: 5, round: 3, phase: 'turno', home: 'Sidney', away: 'Pedro', homeScore: null, awayScore: null },
+  { id: 6, round: 3, phase: 'turno', home: 'Miguel', away: 'Gabriel', homeScore: null, awayScore: null },
 
   // RETURNO (Volta - Mandos Invertidos)
-  { id: 7, round: 4, phase: 'returno', home: 'Pedro', away: 'Sidney', homeScore: null, awayScore: null },
-  { id: 8, round: 4, phase: 'returno', home: 'Gabriel', away: 'Miguel', homeScore: null, awayScore: null },
+  // Rodada 4 (Volta da R1)
+  { id: 7, round: 4, phase: 'returno', home: 'Pedro', away: 'Miguel', homeScore: null, awayScore: null },
+  { id: 8, round: 4, phase: 'returno', home: 'Sidney', away: 'Gabriel', homeScore: null, awayScore: null },
 
-  { id: 9, round: 5, phase: 'returno', home: 'Gabriel', away: 'Pedro', homeScore: null, awayScore: null },
-  { id: 10, round: 5, phase: 'returno', home: 'Miguel', away: 'Sidney', homeScore: null, awayScore: null },
+  // Rodada 5 (Volta da R2)
+  { id: 9, round: 5, phase: 'returno', home: 'Pedro', away: 'Gabriel', homeScore: null, awayScore: null },
+  { id: 10, round: 5, phase: 'returno', home: 'Sidney', away: 'Miguel', homeScore: null, awayScore: null },
 
-  { id: 11, round: 6, phase: 'returno', home: 'Pedro', away: 'Miguel', homeScore: null, awayScore: null },
-  { id: 12, round: 6, phase: 'returno', home: 'Sidney', away: 'Gabriel', homeScore: null, awayScore: null }
+  // Rodada 6 (Volta da R3)
+  { id: 11, round: 6, phase: 'returno', home: 'Pedro', away: 'Sidney', homeScore: null, awayScore: null },
+  { id: 12, round: 6, phase: 'returno', home: 'Gabriel', away: 'Miguel', homeScore: null, awayScore: null }
 ];
 
-const STORAGE_KEY = 'efootball_league_matches_v1';
+const STORAGE_KEY = 'efootball_league_matches_v2';
 
 // Estado global da aplicação
 let matches = [];

@@ -28,29 +28,29 @@ Sistema web completo para gerenciar campeonato de pontos corridos entre amigos n
 
 ---
 
-## 📅 Estrutura das 6 Rodadas (Turno e Returno)
+## 📅 Calendário e Resultados das 6 Rodadas
 
 ### 🔄 Turno (Ida)
-- **Rodada 1:**
-  - Sidney x Pedro
-  - Miguel x Gabriel
-- **Rodada 2:**
-  - Pedro x Gabriel
-  - Sidney x Miguel
-- **Rodada 3:**
-  - Miguel x Pedro
-  - Gabriel x Sidney
+- **Rodada 1 (Realizada):**
+  - Miguel **1 × 2** Pedro
+  - Gabriel **0 × 4** Sidney
+- **Rodada 2 (Realizada):**
+  - Gabriel **0 × 0** Pedro
+  - Miguel **2 × 2** Sidney
+- **Rodada 3 (Próxima):**
+  - Sidney × Pedro
+  - Miguel × Gabriel
 
 ### 🔁 Returno (Volta - Mandos Invertidos)
 - **Rodada 4:**
-  - Pedro x Sidney
-  - Gabriel x Miguel
+  - Pedro × Miguel
+  - Sidney × Gabriel
 - **Rodada 5:**
-  - Gabriel x Pedro
-  - Miguel x Sidney
+  - Pedro × Gabriel
+  - Sidney × Miguel
 - **Rodada 6:**
-  - Pedro x Miguel
-  - Sidney x Gabriel
+  - Pedro × Sidney
+  - Gabriel × Miguel
 
 *Total: 12 partidas. Cada jogador disputa exatamente 6 partidas (3 em casa e 3 fora).*
 
@@ -58,27 +58,7 @@ Sistema web completo para gerenciar campeonato de pontos corridos entre amigos n
 
 ## 🚀 Como Executar o Projeto
 
-Basta abrir o arquivo `index.html` em qualquer navegador web (Google Chrome, Microsoft Edge, Firefox, Safari, etc.):
+Basta abrir o arquivo `index.html` em qualquer navegador web (Google Chrome, Microsoft Edge, Firefox, etc.):
 
 - Dê um **duplo clique** no arquivo `index.html`; ou
 - Arraste o arquivo `index.html` para a janela do seu navegador.
-
----
-
-## ✨ Recursos do Site
-1. **Preenchimento intuitivo dos placares:**
-   - Botões de **`+`** e **`−`** para adicionar ou subtrair gols com um toque no celular ou clique do mouse.
-   - Digitação direta no teclado numérico.
-   - Botão para limpar o placar de um confronto individual.
-2. **Atualização em Tempo Real:**
-   - A tabela calcula automaticamente Pontos, Jogos, Vitórias, Empates, Derrotas, Gols Pró, Gols Contra, Saldo, Aproveitamento (%) e Forma Recente (V, E, D).
-3. **Persistência Automática:**
-   - Todos os placares e dados ficam salvos automaticamente no `localStorage` do navegador. Você pode fechar o navegador e voltar que nada se perde.
-4. **Pop-ups Dedicados (Sem alerts ou confirms nativos):**
-   - Modal moderno de confirmação para ações críticas (como zerar o torneio).
-   - Sistema de Toasts flutuantes para avisos e notificações.
-5. **Copiar para WhatsApp:**
-   - Botão no cabeçalho que formata a tabela com emojis, medalhas e pontos pronta para enviar no grupo dos amigos.
-6. **Estatísticas do Torneio:**
-   - Total de gols marcados, média de gols por partida, melhor ataque e melhor defesa.
-
