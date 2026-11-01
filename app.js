@@ -1,88 +1,204 @@
 /**
  * eFootball League Manager
- * 4 Jogadores | 6 Rodadas (Turno e Returno) | Pontos Corridos
- * Jogadores: Sidney, Miguel, Gabriel, Pedro
+ * Campeonato de Pontos Corridos | Turno e Returno (Ida e Volta)
+ * Sistema Dinâmico de Inscrição e Ajuste Automático de Rodadas
  */
 
-// Jogadores oficiais do campeonato
-const PLAYERS = ['Sidney', 'Miguel', 'Gabriel', 'Pedro'];
+// Chaves de armazenamento local
+const STORAGE_PLAYERS_KEY = 'efootball_league_players_v2';
+const STORAGE_MATCHES_KEY = 'efootball_league_matches_v2';
 
-// Definição das 6 Rodadas (Turno: 1-3 | Returno: 4-6)
-// Atualizado com os jogos e resultados reais das Rodadas 1 e 2
-const DEFAULT_MATCHES = [
+// Lista de jogadores padrão inicial
+const INITIAL_PLAYERS = ['Sidney', 'Miguel', 'Gabriel', 'Pedro'];
+
+// Jogos reais das rodadas 1 e 2 (caso os jogadores sejam exatamente os 4 originais)
+const DEFAULT_MATCHES_4 = [
   // TURNO (Ida)
-  // Rodada 1 (Realizada)
   { id: 1, round: 1, phase: 'turno', home: 'Miguel', away: 'Pedro', homeScore: 1, awayScore: 2 },
   { id: 2, round: 1, phase: 'turno', home: 'Gabriel', away: 'Sidney', homeScore: 0, awayScore: 4 },
 
-  // Rodada 2 (Realizada)
   { id: 3, round: 2, phase: 'turno', home: 'Gabriel', away: 'Pedro', homeScore: 0, awayScore: 0 },
   { id: 4, round: 2, phase: 'turno', home: 'Miguel', away: 'Sidney', homeScore: 2, awayScore: 2 },
 
-  // Rodada 3 (Próxima para completar o Turno de Ida)
   { id: 5, round: 3, phase: 'turno', home: 'Sidney', away: 'Pedro', homeScore: null, awayScore: null },
   { id: 6, round: 3, phase: 'turno', home: 'Miguel', away: 'Gabriel', homeScore: null, awayScore: null },
 
   // RETURNO (Volta - Mandos Invertidos)
-  // Rodada 4 (Volta da R1)
   { id: 7, round: 4, phase: 'returno', home: 'Pedro', away: 'Miguel', homeScore: null, awayScore: null },
   { id: 8, round: 4, phase: 'returno', home: 'Sidney', away: 'Gabriel', homeScore: null, awayScore: null },
 
-  // Rodada 5 (Volta da R2)
   { id: 9, round: 5, phase: 'returno', home: 'Pedro', away: 'Gabriel', homeScore: null, awayScore: null },
   { id: 10, round: 5, phase: 'returno', home: 'Sidney', away: 'Miguel', homeScore: null, awayScore: null },
 
-  // Rodada 6 (Volta da R3)
   { id: 11, round: 6, phase: 'returno', home: 'Pedro', away: 'Sidney', homeScore: null, awayScore: null },
   { id: 12, round: 6, phase: 'returno', home: 'Gabriel', away: 'Miguel', homeScore: null, awayScore: null }
 ];
 
-const STORAGE_KEY = 'efootball_league_matches_v2';
-
 // Estado global da aplicação
+let players = [];
 let matches = [];
 let currentFilter = 'all'; // 'all', 'turno', 'returno'
+let activeTab = 'tournament'; // 'tournament', 'players'
+let hasCelebrated = false;
 
 /* ==========================================================================
    Inicialização e Carregamento de Dados
    ========================================================================== */
 function init() {
-  loadMatches();
+  loadData();
   setupEventListeners();
   renderApp();
 }
 
-function loadMatches() {
-  const stored = localStorage.getItem(STORAGE_KEY);
-  if (stored) {
+function loadData() {
+  // Carrega jogadores
+  const storedPlayers = localStorage.getItem(STORAGE_PLAYERS_KEY);
+  if (storedPlayers) {
     try {
-      matches = JSON.parse(stored);
-      // Garante consistência de IDs e jogadores caso algo mude
-      if (!Array.isArray(matches) || matches.length !== DEFAULT_MATCHES.length) {
-        matches = JSON.parse(JSON.stringify(DEFAULT_MATCHES));
-        saveMatches();
+      const parsed = JSON.parse(storedPlayers);
+      if (Array.isArray(parsed) && parsed.length >= 2) {
+        players = parsed;
+      } else {
+        players = [...INITIAL_PLAYERS];
       }
     } catch (e) {
-      matches = JSON.parse(JSON.stringify(DEFAULT_MATCHES));
-      saveMatches();
+      players = [...INITIAL_PLAYERS];
     }
   } else {
-    matches = JSON.parse(JSON.stringify(DEFAULT_MATCHES));
-    saveMatches();
+    players = [...INITIAL_PLAYERS];
+  }
+
+  // Carrega partidas
+  const storedMatches = localStorage.getItem(STORAGE_MATCHES_KEY);
+  if (storedMatches) {
+    try {
+      const parsedMatches = JSON.parse(storedMatches);
+      if (Array.isArray(parsedMatches) && parsedMatches.length > 0) {
+        matches = parsedMatches;
+      } else {
+        initDefaultSchedule();
+      }
+    } catch (e) {
+      initDefaultSchedule();
+    }
+  } else {
+    initDefaultSchedule();
+  }
+
+  saveData();
+}
+
+function initDefaultSchedule() {
+  if (isExactOriginalFour(players)) {
+    matches = JSON.parse(JSON.stringify(DEFAULT_MATCHES_4));
+  } else {
+    matches = generateRoundRobinSchedule(players);
   }
 }
 
-function saveMatches() {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(matches));
+function isExactOriginalFour(list) {
+  if (list.length !== 4) return false;
+  return INITIAL_PLAYERS.every(p => list.includes(p));
+}
+
+function saveData() {
+  localStorage.setItem(STORAGE_PLAYERS_KEY, JSON.stringify(players));
+  localStorage.setItem(STORAGE_MATCHES_KEY, JSON.stringify(matches));
+}
+
+/* ==========================================================================
+   Algoritmo Canônico Round-Robin (Todos Contra Todos Ida e Volta)
+   ========================================================================== */
+function generateRoundRobinSchedule(playerList) {
+  const n = playerList.length;
+  if (n < 2) return [];
+
+  // Se a quantidade de jogadores for ímpar, adiciona dummy 'BYE' (Folga)
+  const isOdd = n % 2 !== 0;
+  const list = isOdd ? [...playerList, '__BYE__'] : [...playerList];
+  const totalTeams = list.length;
+  const roundsInHalf = totalTeams - 1;
+  const matchesPerRound = totalTeams / 2;
+
+  const firstLegRounds = [];
+  let currentTeams = [...list];
+
+  // Gera o Turno (Ida) usando o método circular
+  for (let round = 0; round < roundsInHalf; round++) {
+    const roundMatches = [];
+
+    for (let i = 0; i < matchesPerRound; i++) {
+      const teamA = currentTeams[i];
+      const teamB = currentTeams[totalTeams - 1 - i];
+
+      // Pula a folga se houver
+      if (teamA === '__BYE__' || teamB === '__BYE__') {
+        continue;
+      }
+
+      // Alterna o mando do primeiro par para equilibrar jogos dentro e fora
+      if (i === 0 && round % 2 === 1) {
+        roundMatches.push({ home: teamB, away: teamA });
+      } else {
+        roundMatches.push({ home: teamA, away: teamB });
+      }
+    }
+
+    firstLegRounds.push(roundMatches);
+
+    // Gira todos os elementos exceto o primeiro (índice 0 fixo)
+    const fixed = currentTeams[0];
+    const rest = currentTeams.slice(1);
+    const last = rest.pop();
+    rest.unshift(last);
+    currentTeams = [fixed, ...rest];
+  }
+
+  // Monta a lista completa com Turno e Returno
+  const allMatches = [];
+  let matchId = 1;
+
+  // Turno de Ida
+  firstLegRounds.forEach((roundMatches, rIdx) => {
+    const roundNum = rIdx + 1;
+    roundMatches.forEach(m => {
+      allMatches.push({
+        id: matchId++,
+        round: roundNum,
+        phase: 'turno',
+        home: m.home,
+        away: m.away,
+        homeScore: null,
+        awayScore: null
+      });
+    });
+  });
+
+  // Returno de Volta (Inverte mandos de campo)
+  firstLegRounds.forEach((roundMatches, rIdx) => {
+    const roundNum = roundsInHalf + rIdx + 1;
+    roundMatches.forEach(m => {
+      allMatches.push({
+        id: matchId++,
+        round: roundNum,
+        phase: 'returno',
+        home: m.away, // Invertido
+        away: m.home, // Invertido
+        homeScore: null,
+        awayScore: null
+      });
+    });
+  });
+
+  return allMatches;
 }
 
 /* ==========================================================================
    Cálculo da Tabela de Classificação
    ========================================================================== */
 function calculateStandings() {
-  // Inicializa estatísticas para cada jogador
   const stats = {};
-  PLAYERS.forEach(player => {
+  players.forEach(player => {
     stats[player] = {
       name: player,
       pts: 0,
@@ -94,11 +210,10 @@ function calculateStandings() {
       gc: 0,
       sg: 0,
       pct: 0,
-      form: [] // Array com resultados 'V', 'E', 'D' em ordem cronológica
+      form: []
     };
   });
 
-  // Percorre as partidas e acumula os dados dos jogos finalizados
   matches.forEach(m => {
     const isPlayed = m.homeScore !== null && m.awayScore !== null && !isNaN(m.homeScore) && !isNaN(m.awayScore);
     if (!isPlayed) return;
@@ -119,21 +234,18 @@ function calculateStandings() {
     away.gc += hs;
 
     if (hs > as) {
-      // Vitória do Mandante
       home.pts += 3;
       home.v += 1;
       away.d += 1;
       home.form.push('V');
       away.form.push('D');
     } else if (hs < as) {
-      // Vitória do Visitante
       away.pts += 3;
       away.v += 1;
       home.d += 1;
       away.form.push('V');
       home.form.push('D');
     } else {
-      // Empate
       home.pts += 1;
       away.pts += 1;
       home.e += 1;
@@ -143,47 +255,30 @@ function calculateStandings() {
     }
   });
 
-  // Calcula Saldo e Aproveitamento
   Object.values(stats).forEach(p => {
     p.sg = p.gp - p.gc;
     const maxPossiblePts = p.j * 3;
     p.pct = maxPossiblePts > 0 ? ((p.pts / maxPossiblePts) * 100).toFixed(1) : '0.0';
   });
 
-  // Converte para array e ordena pelos critérios de desempate
   const standingsList = Object.values(stats);
 
   standingsList.sort((a, b) => {
-    // 1º Critério: Maior Pontuação (PTS)
     if (b.pts !== a.pts) return b.pts - a.pts;
-
-    // 2º Critério: Mais Vitórias (V)
     if (b.v !== a.v) return b.v - a.v;
-
-    // 3º Critério: Maior Saldo de Gols (SG)
     if (b.sg !== a.sg) return b.sg - a.sg;
-
-    // 4º Critério: Mais Gols Marcados (GP)
     if (b.gp !== a.gp) return b.gp - a.gp;
-
-    // 5º Critério: Menos Gols Sofridos (GC)
     if (a.gc !== b.gc) return a.gc - b.gc;
 
-    // 6º Critério: Confronto Direto
     const headToHead = calculateHeadToHead(a.name, b.name);
     if (headToHead !== 0) return headToHead;
 
-    // Fallback: Ordem alfabética
     return a.name.localeCompare(b.name);
   });
 
   return standingsList;
 }
 
-/**
- * Confronto direto entre dois jogadores
- * Retorna negativo se 'a' leva vantagem, positivo se 'b' leva vantagem, 0 se empate
- */
 function calculateHeadToHead(playerA, playerB) {
   let ptsA = 0;
   let ptsB = 0;
@@ -211,19 +306,39 @@ function calculateHeadToHead(playerA, playerB) {
   });
 
   if (ptsB !== ptsA) return ptsB - ptsA;
-  if (sgA !== 0) return -sgA; // Se sgA for positivo, A é melhor (retorna < 0)
+  if (sgA !== 0) return -sgA;
   return 0;
 }
 
 /* ==========================================================================
-   Renderização dos Componentes
+   Renderização Geral da Aplicação
    ========================================================================== */
 function renderApp() {
+  updateHeaderInfo();
   const standings = calculateStandings();
   renderStandingsTable(standings);
   renderStats(standings);
   renderMatches();
+  renderPlayersManager();
   checkChampionStatus(standings);
+}
+
+function updateHeaderInfo() {
+  const subtitle = document.getElementById('headerSubtitle');
+  const countBadge = document.getElementById('playersCountBadge');
+  const roundsTotal = calculateTotalRounds();
+
+  if (subtitle) {
+    subtitle.textContent = `${players.length} Jogadores • ${roundsTotal} Rodadas (Turno e Returno) • Vitória = 3 pts | Empate = 1 pt`;
+  }
+  if (countBadge) {
+    countBadge.textContent = players.length;
+  }
+}
+
+function calculateTotalRounds() {
+  if (matches.length === 0) return 0;
+  return Math.max(...matches.map(m => m.round), 0);
 }
 
 function renderStandingsTable(standings) {
@@ -235,11 +350,8 @@ function renderStandingsTable(standings) {
   standings.forEach((player, index) => {
     const pos = index + 1;
     const tr = document.createElement('tr');
-
-    // Badge de posição
     const posBadgeClass = pos <= 3 ? `pos-${pos}` : '';
 
-    // Forma recente (últimos 5 jogos)
     const recentForm = player.form.slice(-5);
     let formBadgesHtml = '';
     if (recentForm.length === 0) {
@@ -251,7 +363,6 @@ function renderStandingsTable(standings) {
       }).join('');
     }
 
-    // Avatar com inicial
     const initial = player.name.charAt(0).toUpperCase();
 
     tr.innerHTML = `
@@ -285,21 +396,18 @@ function renderStandingsTable(standings) {
 }
 
 function renderStats(standings) {
-  // Jogos concluídos
   const playedMatches = matches.filter(m => m.homeScore !== null && m.awayScore !== null);
   const totalPlayed = playedMatches.length;
-  const totalMatches = matches.length; // 12
+  const totalMatches = matches.length;
 
-  // Atualiza barra de progresso
   const progressText = document.getElementById('tournamentProgressText');
   const progressBar = document.getElementById('tournamentProgressBar');
   if (progressText && progressBar) {
     progressText.textContent = `${totalPlayed} / ${totalMatches} Jogos`;
-    const pct = Math.round((totalPlayed / totalMatches) * 100);
+    const pct = totalMatches > 0 ? Math.round((totalPlayed / totalMatches) * 100) : 0;
     progressBar.style.width = `${pct}%`;
   }
 
-  // Total de Gols
   let totalGoals = 0;
   playedMatches.forEach(m => {
     totalGoals += (m.homeScore + m.awayScore);
@@ -313,7 +421,6 @@ function renderStats(standings) {
     statAvgGoals.textContent = avg;
   }
 
-  // Melhor Ataque (Mais Gols Pró)
   let bestAttackPlayer = '-';
   let maxGP = 0;
   standings.forEach(p => {
@@ -330,7 +437,6 @@ function renderStats(standings) {
     statBestAttackGoals.textContent = `${maxGP} gols marcados`;
   }
 
-  // Melhor Defesa (Menos Gols Sofridos, com pelo menos 1 jogo disputado)
   let bestDefensePlayer = '-';
   let minGC = 9999;
   const activePlayers = standings.filter(p => p.j > 0);
@@ -362,16 +468,25 @@ function renderMatches() {
 
   container.innerHTML = '';
 
-  // Agrupa partidas por rodada (1 a 6)
-  const rounds = [1, 2, 3, 4, 5, 6];
+  const totalRounds = calculateTotalRounds();
+  const rounds = [];
+  for (let r = 1; r <= totalRounds; r++) rounds.push(r);
+
+  const halfRounds = Math.floor(totalRounds / 2);
+
+  // Atualiza texto dos botões de filtro de rodadas
+  const roundTabs = document.getElementById('roundTabs');
+  if (roundTabs) {
+    const allBtn = roundTabs.querySelector('[data-filter="all"]');
+    if (allBtn) allBtn.textContent = `Todas (${totalRounds})`;
+  }
 
   rounds.forEach(roundNum => {
     const roundMatches = matches.filter(m => m.round === roundNum);
     if (roundMatches.length === 0) return;
 
-    const phase = roundNum <= 3 ? 'turno' : 'returno';
+    const phase = roundNum <= halfRounds ? 'turno' : 'returno';
 
-    // Aplica filtro de abas (all, turno, returno)
     if (currentFilter !== 'all' && currentFilter !== phase) {
       return;
     }
@@ -486,7 +601,6 @@ function renderMatches() {
     container.appendChild(roundCard);
   });
 
-  // Vincula eventos de digitação direta nos inputs de placar
   attachScoreInputEvents();
 }
 
@@ -525,14 +639,11 @@ function handleScoreDirectInput(e) {
     }
   }
 
-  saveMatches();
+  saveData();
   updateMatchCardVisual(matchId);
   refreshLeaderboard();
 }
 
-/**
- * Atualiza visualmente o card de um jogo específico sem destruir os inputs
- */
 function updateMatchCardVisual(matchId) {
   const match = matches.find(m => m.id === matchId);
   const card = document.querySelector(`.match-item[data-match-id="${matchId}"]`);
@@ -587,7 +698,6 @@ function updateMatchCardVisual(matchId) {
     }
   }
 
-  // Sincroniza valores nos inputs quando a alteração não foi por digitação ativa
   const homeInput = card.querySelector(`.score-input[data-team="home"]`);
   const awayInput = card.querySelector(`.score-input[data-team="away"]`);
   if (homeInput && document.activeElement !== homeInput) {
@@ -598,9 +708,6 @@ function updateMatchCardVisual(matchId) {
   }
 }
 
-/**
- * Atualiza tabela, estatísticas e status de campeão
- */
 function refreshLeaderboard() {
   const standings = calculateStandings();
   renderStandingsTable(standings);
@@ -608,14 +715,10 @@ function refreshLeaderboard() {
   checkChampionStatus(standings);
 }
 
-/**
- * Incrementa ou decrementa o placar com os botões + e -
- */
 window.adjustScore = function(matchId, team, delta) {
   const match = matches.find(m => m.id === matchId);
   if (!match) return;
 
-  // Se ambos forem nulos ao começar a pontuar, inicializa com 0
   if (match.homeScore === null && match.awayScore === null) {
     match.homeScore = 0;
     match.awayScore = 0;
@@ -636,14 +739,11 @@ window.adjustScore = function(matchId, team, delta) {
     match.awayScore = newScore;
   }
 
-  saveMatches();
+  saveData();
   updateMatchCardVisual(matchId);
   refreshLeaderboard();
 };
 
-/**
- * Limpa o resultado de um jogo individual
- */
 window.clearMatchScore = function(matchId) {
   const match = matches.find(m => m.id === matchId);
   if (!match) return;
@@ -651,17 +751,165 @@ window.clearMatchScore = function(matchId) {
   match.homeScore = null;
   match.awayScore = null;
 
-  saveMatches();
+  saveData();
   updateMatchCardVisual(matchId);
   refreshLeaderboard();
   showToast(`Placar do jogo ${match.home} x ${match.away} foi zerado.`, 'info');
 };
 
 /* ==========================================================================
+   Gerenciamento e Inscrição de Jogadores (Aba Dinâmica)
+   ========================================================================== */
+function renderPlayersManager() {
+  const grid = document.getElementById('playersListGrid');
+  const summaryCount = document.getElementById('summaryPlayersCount');
+  const summaryRounds = document.getElementById('summaryRoundsCount');
+  const summaryMatches = document.getElementById('summaryMatchesCount');
+
+  const totalRounds = calculateTotalRounds();
+
+  if (summaryCount) summaryCount.textContent = players.length;
+  if (summaryRounds) summaryRounds.textContent = totalRounds;
+  if (summaryMatches) summaryMatches.textContent = matches.length;
+
+  if (!grid) return;
+
+  grid.innerHTML = '';
+
+  players.forEach((playerName, index) => {
+    const card = document.createElement('div');
+    card.className = 'player-item-card';
+
+    const initial = playerName.charAt(0).toUpperCase();
+
+    // Contagem de jogos agendados para este jogador
+    const playerMatchesCount = matches.filter(m => m.home === playerName || m.away === playerName).length;
+
+    card.innerHTML = `
+      <div class="player-card-left">
+        <div class="player-card-avatar">${initial}</div>
+        <div class="player-card-info">
+          <span class="player-card-name" title="${playerName}">${playerName}</span>
+          <span class="player-card-sub">${playerMatchesCount} partidas agendadas</span>
+        </div>
+      </div>
+      <button 
+        type="button" 
+        class="btn-remove-player" 
+        onclick="confirmRemovePlayer('${playerName}')" 
+        title="Remover ${playerName} do torneio"
+      >
+        🗑️
+      </button>
+    `;
+
+    grid.appendChild(card);
+  });
+}
+
+/**
+ * Adiciona um novo jogador ao campeonato
+ */
+function handleAddPlayer() {
+  const input = document.getElementById('inputPlayerName');
+  if (!input) return;
+
+  const rawName = input.value.trim();
+
+  // Validação 1: Nome vazio
+  if (!rawName) {
+    showToast('Por favor, digite o nome do jogador para inscrever.', 'warning');
+    input.focus();
+    return;
+  }
+
+  // Validação 2: Limite de caracteres
+  if (rawName.length > 20) {
+    showToast('O nome do jogador deve ter no máximo 20 caracteres.', 'warning');
+    return;
+  }
+
+  // Validação 3: Nome duplicado (case-insensitive)
+  const isDuplicate = players.some(p => p.toLowerCase() === rawName.toLowerCase());
+  if (isDuplicate) {
+    showToast(`O jogador "${rawName}" já está inscrito no campeonato!`, 'warning');
+    input.focus();
+    return;
+  }
+
+  // Validação 4: Máximo de jogadores
+  if (players.length >= 16) {
+    showToast('Limite máximo de 16 participantes atingido!', 'warning');
+    return;
+  }
+
+  // Se já houver jogos disputados no torneio, solicita confirmação via Pop-up dedicado
+  const playedCount = matches.filter(m => m.homeScore !== null && m.awayScore !== null).length;
+
+  if (playedCount > 0) {
+    openConfirmModal({
+      title: 'Ajustar Campeonato com Novo Jogador?',
+      message: `O campeonato já tem ${playedCount} partidas com resultado registrado. Adicionar "${rawName}" irá gerar uma nova grade equilibrada de rodadas (ida e volta) e zerar a tabela. Deseja continuar?`,
+      icon: '➕',
+      confirmText: 'Sim, adicionar e ajustar',
+      cancelText: 'Cancelar',
+      onConfirm: () => {
+        executeAddPlayer(rawName);
+        input.value = '';
+      }
+    });
+  } else {
+    executeAddPlayer(rawName);
+    input.value = '';
+  }
+}
+
+function executeAddPlayer(playerName) {
+  players.push(playerName);
+  matches = generateRoundRobinSchedule(players);
+  saveData();
+  hasCelebrated = false;
+  renderApp();
+  showToast(`Jogador "${playerName}" inscrito! Grade de jogos recalculada automaticamente.`, 'success');
+}
+
+/**
+ * Confirmação de remoção de jogador (Modal Dedicado, SEM confirm())
+ */
+window.confirmRemovePlayer = function(playerName) {
+  // Mínimo de 3 jogadores
+  if (players.length <= 3) {
+    showToast('O campeonato precisa de no mínimo 3 jogadores inscritos.', 'warning');
+    return;
+  }
+
+  openConfirmModal({
+    title: `Remover ${playerName}?`,
+    message: `Tem certeza de que deseja remover "${playerName}" do campeonato? A grade de confrontos e a tabela serão recalculadas automaticamente.`,
+    icon: '⚠️',
+    confirmText: 'Sim, remover',
+    cancelText: 'Cancelar',
+    onConfirm: () => {
+      players = players.filter(p => p !== playerName);
+
+      // Se voltar a ser exatamente os 4 originais, usa o calendário oficial
+      if (isExactOriginalFour(players)) {
+        matches = JSON.parse(JSON.stringify(DEFAULT_MATCHES_4));
+      } else {
+        matches = generateRoundRobinSchedule(players);
+      }
+
+      saveData();
+      hasCelebrated = false;
+      renderApp();
+      showToast(`Jogador "${playerName}" removido. Campeonato reajustado!`, 'info');
+    }
+  });
+};
+
+/* ==========================================================================
    Verificação de Campeão & Celebração
    ========================================================================== */
-let hasCelebrated = false;
-
 function checkChampionStatus(standings) {
   const banner = document.getElementById('championBanner');
   const championNameElem = document.getElementById('championName');
@@ -670,21 +918,27 @@ function checkChampionStatus(standings) {
   if (!banner || !championNameElem || !championDetailsElem) return;
 
   const totalPlayed = matches.filter(m => m.homeScore !== null && m.awayScore !== null).length;
-  const isFinished = totalPlayed === matches.length;
+  const isFinished = matches.length > 0 && totalPlayed === matches.length;
 
-  // Verifica se o líder já é matematicamente campeão
+  if (standings.length < 2) {
+    banner.classList.add('hidden');
+    return;
+  }
+
   const leader = standings[0];
   const runnerUp = standings[1];
 
   let isChampionConfirmed = false;
   let reason = '';
 
+  const totalRounds = calculateTotalRounds();
+
   if (isFinished) {
     isChampionConfirmed = true;
-    reason = `Campeão incontestável! Todas as 6 rodadas foram concluídas com ${leader.pts} pontos.`;
+    reason = `Campeão incontestável! Todas as ${totalRounds} rodadas foram concluídas com ${leader.pts} pontos.`;
   } else if (leader.j > 0) {
-    // Jogos restantes de cada um
-    const matchesRemainingRunnerUp = 6 - runnerUp.j;
+    const totalMatchesPerPlayer = (players.length - 1) * 2;
+    const matchesRemainingRunnerUp = Math.max(0, totalMatchesPerPlayer - runnerUp.j);
     const maxPossiblePtsRunnerUp = runnerUp.pts + (matchesRemainingRunnerUp * 3);
 
     if (leader.pts > maxPossiblePtsRunnerUp) {
@@ -742,11 +996,13 @@ function triggerConfetti() {
 function copyStandingsForWhatsApp() {
   const standings = calculateStandings();
   const playedMatches = matches.filter(m => m.homeScore !== null && m.awayScore !== null).length;
+  const totalRounds = calculateTotalRounds();
 
   let text = `🏆 *TABELA DO CAMPEONATO eFOOTBALL* ⚽\n`;
-  text += `📅 Progresso: ${playedMatches}/12 jogos realizados\n\n`;
+  text += `👥 ${players.length} Jogadores • ${totalRounds} Rodadas (Ida e Volta)\n`;
+  text += `📅 Progresso: ${playedMatches}/${matches.length} jogos realizados\n\n`;
 
-  const medals = ['🥇', '🥈', '🥉', '🎮'];
+  const medals = ['🥇', '🥈', '🥉'];
 
   standings.forEach((p, idx) => {
     const medal = medals[idx] || `${idx + 1}º`;
@@ -755,8 +1011,10 @@ function copyStandingsForWhatsApp() {
     text += `   ${p.j}J | ${p.v}V ${p.e}E ${p.d}D | GP: ${p.gp} | GC: ${p.gc} | SG: ${sgFormatted}\n`;
   });
 
-  const leader = standings[0];
-  text += `\n👑 *Líder atual:* ${leader.name} (${leader.pts} pts)\n`;
+  if (standings.length > 0) {
+    const leader = standings[0];
+    text += `\n👑 *Líder atual:* ${leader.name} (${leader.pts} pts)\n`;
+  }
   text += `⚡ Atualizado em tempo real na Tabela eFootball.`;
 
   if (navigator.clipboard && navigator.clipboard.writeText) {
@@ -790,10 +1048,6 @@ function fallbackCopyText(text) {
 /* ==========================================================================
    Pop-ups Dedicados (Seguindo a regra: NUNCA USAR alert() ou confirm())
    ========================================================================== */
-
-/**
- * Modal customizado dedicado para confirmação
- */
 function openConfirmModal({ title, message, icon = '⚠️', confirmText = 'Confirmar', cancelText = 'Cancelar', onConfirm }) {
   const modal = document.getElementById('customModal');
   const titleElem = document.getElementById('modalTitle');
@@ -812,7 +1066,6 @@ function openConfirmModal({ title, message, icon = '⚠️', confirmText = 'Conf
 
   modal.classList.remove('hidden');
 
-  // Remove listeners anteriores clonando os nós
   const newBtnConfirm = btnConfirm.cloneNode(true);
   const newBtnCancel = btnCancel.cloneNode(true);
   btnConfirm.parentNode.replaceChild(newBtnConfirm, btnConfirm);
@@ -831,7 +1084,6 @@ function openConfirmModal({ title, message, icon = '⚠️', confirmText = 'Conf
     }
   });
 
-  // Fechar ao clicar fora do box
   modal.onclick = (e) => {
     if (e.target === modal) {
       closeModal();
@@ -839,9 +1091,6 @@ function openConfirmModal({ title, message, icon = '⚠️', confirmText = 'Conf
   };
 }
 
-/**
- * Notificação Flutuante / Toast Dedicado
- */
 function showToast(message, type = 'info', duration = 3500) {
   const container = document.getElementById('toastContainer');
   if (!container) return;
@@ -863,12 +1112,10 @@ function showToast(message, type = 'info', duration = 3500) {
 
   container.appendChild(toast);
 
-  // Animação de entrada
   setTimeout(() => {
     toast.classList.add('show');
   }, 10);
 
-  // Remoção automática
   setTimeout(() => {
     toast.classList.remove('show');
     setTimeout(() => {
@@ -883,22 +1130,67 @@ function showToast(message, type = 'info', duration = 3500) {
    Configuração de Eventos
    ========================================================================== */
 function setupEventListeners() {
-  // Botão de Zerar Torneio (Abre Pop-up dedicado de confirmação, SEM confirm())
+  // Navegação entre abas principais
+  const tabTournament = document.getElementById('navTabTournament');
+  const tabPlayers = document.getElementById('navTabPlayers');
+  const viewTournament = document.getElementById('viewTournament');
+  const viewPlayers = document.getElementById('viewPlayers');
+
+  if (tabTournament && tabPlayers && viewTournament && viewPlayers) {
+    tabTournament.addEventListener('click', () => {
+      tabTournament.classList.add('active');
+      tabPlayers.classList.remove('active');
+      viewTournament.classList.remove('hidden');
+      viewPlayers.classList.add('hidden');
+      activeTab = 'tournament';
+    });
+
+    tabPlayers.addEventListener('click', () => {
+      tabPlayers.classList.add('active');
+      tabTournament.classList.remove('active');
+      viewPlayers.classList.remove('hidden');
+      viewTournament.classList.add('hidden');
+      activeTab = 'players';
+    });
+  }
+
+  // Formulário de Adicionar Jogador
+  const btnAdd = document.getElementById('btnAddPlayer');
+  const inputPlayer = document.getElementById('inputPlayerName');
+
+  if (btnAdd) {
+    btnAdd.addEventListener('click', handleAddPlayer);
+  }
+
+  if (inputPlayer) {
+    inputPlayer.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        handleAddPlayer();
+      }
+    });
+  }
+
+  // Botão de Zerar Torneio
   const btnReset = document.getElementById('btnResetTournament');
   if (btnReset) {
     btnReset.addEventListener('click', () => {
       openConfirmModal({
         title: 'Zerar todo o Campeonato?',
-        message: 'Todos os 12 placares preenchidos e a classificação serão redefinidos para o início. Esta ação não pode ser desfeita.',
+        message: 'Todos os placares preenchidos e a classificação serão redefinidos para o início. Deseja continuar?',
         icon: '⚠️',
         confirmText: 'Sim, zerar tudo',
         cancelText: 'Cancelar',
         onConfirm: () => {
-          matches = JSON.parse(JSON.stringify(DEFAULT_MATCHES));
-          saveMatches();
+          if (isExactOriginalFour(players)) {
+            matches = JSON.parse(JSON.stringify(DEFAULT_MATCHES_4));
+          } else {
+            matches = generateRoundRobinSchedule(players);
+          }
+          saveData();
           hasCelebrated = false;
           renderApp();
-          showToast('Campeonato zerado com sucesso! Pronto para nova disputa.', 'success');
+          showToast('Campeonato zerado com sucesso!', 'success');
         }
       });
     });
@@ -910,7 +1202,7 @@ function setupEventListeners() {
     btnShare.addEventListener('click', copyStandingsForWhatsApp);
   }
 
-  // Botão de Soltar Confetes no Banner
+  // Botão de Soltar Confetes
   const btnCelebration = document.getElementById('btnCelebration');
   if (btnCelebration) {
     btnCelebration.addEventListener('click', () => {
@@ -919,7 +1211,7 @@ function setupEventListeners() {
     });
   }
 
-  // Abas de Filtro de Rodadas
+  // Filtro de Rodadas (Todas / Turno / Returno)
   const tabs = document.querySelectorAll('.tab-btn');
   tabs.forEach(tab => {
     tab.addEventListener('click', (e) => {
@@ -932,5 +1224,4 @@ function setupEventListeners() {
   });
 }
 
-// Inicia o app quando o DOM estiver pronto
 document.addEventListener('DOMContentLoaded', init);

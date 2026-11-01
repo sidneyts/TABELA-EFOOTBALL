@@ -1,22 +1,18 @@
-# ⚽ Tabela eFootball League - 4 Jogadores
+# ⚽ Tabela eFootball League - Sistema Dinâmico de Campeonato
 
-Sistema web completo para gerenciar campeonato de pontos corridos entre amigos no eFootball, com 4 jogadores, 6 rodadas (turno de ida e returno de volta), pontuação oficial e atualização em tempo real.
-
----
-
-## 👥 Jogadores Oficiais
-- **Sidney**
-- **Miguel**
-- **Gabriel**
-- **Pedro**
+Sistema web completo para gerenciar campeonatos de pontos corridos entre amigos no eFootball, com suporte a **inscrição dinâmica de jogadores**, **geração automática de rodadas (Turno e Returno / Ida e Volta)**, pontuação oficial e atualização em tempo real.
 
 ---
 
-## 🏆 Regras e Pontuação
-- **Vitória:** 3 pontos
-- **Empate:** 1 ponto para cada jogador
-- **Derrota:** 0 pontos
-- **Campeão:** O jogador que terminar no 1º lugar após as 6 rodadas. Caso algum jogador garanta o título matematicamente com antecedência, o sistema já coroa o campeão com banner e efeito de confetes!
+## 👥 Jogadores e Formato do Torneio
+- **Jogadores Iniciais:** **Sidney**, **Miguel**, **Gabriel** e **Pedro**
+- **Inscrição de Novos Jogadores:** Aba dedicada para cadastrar novos amigos ou remover participantes.
+- **Ajuste Automático:** O sistema recalcula automaticamente a grade de jogos com turno (ida) e returno (volta) para que todos joguem contra todos com mandos de campo balanceados.
+- **Sistema de Pontuação Oficial:**
+  - 🥇 **Vitória:** 3 pontos
+  - 🤝 **Empate:** 1 ponto para cada jogador
+  - ❌ **Derrota:** 0 pontos
+- **Campeão:** O 1º colocado ao final de todas as rodadas (ou com garantia matemática antecipada) recebe o banner dourado com animação de confetes! 🎉
 
 ### 📊 Critérios de Desempate
 1. Maior número de pontos (**PTS**)
@@ -28,37 +24,27 @@ Sistema web completo para gerenciar campeonato de pontos corridos entre amigos n
 
 ---
 
-## 📅 Calendário e Resultados das 6 Rodadas
+## 🎮 Funcionalidades Principais
 
-### 🔄 Turno (Ida)
-- **Rodada 1 (Realizada):**
-  - Miguel **1 × 2** Pedro
-  - Gabriel **0 × 4** Sidney
-- **Rodada 2 (Realizada):**
-  - Gabriel **0 × 0** Pedro
-  - Miguel **2 × 2** Sidney
-- **Rodada 3 (Próxima):**
-  - Sidney × Pedro
-  - Miguel × Gabriel
+### 1. Aba "Tabela & Jogos"
+- **Classificação Completa em Tempo Real:** Posição, Jogador, Pontos (PTS), Jogos (J), Vitórias (V), Empates (E), Derrotas (D), Gols Pró (GP), Gols Sofridos (GC), Saldo (SG), Aproveitamento (%) e Forma Recente (V, E, D).
+- **Cards de Partidas com Controles Rápidos:** Botões de `+` e `−` para toque rápido no celular ou digitação numérica direta.
+- **Filtro de Rodadas:** Alterne facilmente entre *Todas as Rodadas*, *Turno (Ida)* e *Returno (Volta)*.
+- **Estatísticas Rápidas:** Total de gols, média de gols por jogo, melhor ataque e melhor defesa.
+- **Copiar para WhatsApp:** Botão que formata a classificação com emojis e medalhas pronta para colar no grupo.
 
-### 🔁 Returno (Volta - Mandos Invertidos)
-- **Rodada 4:**
-  - Pedro × Miguel
-  - Sidney × Gabriel
-- **Rodada 5:**
-  - Pedro × Gabriel
-  - Sidney × Miguel
-- **Rodada 6:**
-  - Pedro × Sidney
-  - Gabriel × Miguel
+### 2. Aba "Inscrever Jogadores"
+- **Adicionar Jogador:** Digite o nome do amigo e adicione ao campeonato. O sistema avisa se houver jogos em andamento antes de recalcular.
+- **Remover Jogador:** Remova participantes com confirmação visual em pop-up dedicado (mantendo o mínimo de 3 participantes).
+- **Resumo Dinâmico:** Mostra em tempo real a quantidade de jogadores inscritos, total de rodadas e total de partidas geradas.
 
-*Total: 12 partidas. Cada jogador disputa exatamente 6 partidas (3 em casa e 3 fora).*
+### 3. Pop-ups e Notificações Dedicados
+- Interface 100% customizada sem usar `alert()` ou `confirm()`. Modais modernos com backdrop blur e sistema de toasts flutuantes.
+
+### 4. Salvamento Automático
+- Todos os dados ficam salvos automaticamente no `localStorage` do navegador.
 
 ---
 
-## 🚀 Como Executar o Projeto
-
-Basta abrir o arquivo `index.html` em qualquer navegador web (Google Chrome, Microsoft Edge, Firefox, etc.):
-
-- Dê um **duplo clique** no arquivo `index.html`; ou
-- Arraste o arquivo `index.html` para a janela do seu navegador.
+## 🚀 Como Executar
+Basta dar um duplo clique no arquivo `index.html` ou abri-lo em qualquer navegador web.

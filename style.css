@@ -1060,6 +1060,334 @@ body {
   display: none !important;
 }
 
+/* ========================================================= */
+/* NAVEGAÇÃO PRINCIPAL ENTRE ABAS                            */
+/* ========================================================= */
+.main-nav-tabs {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 24px;
+  background: rgba(10, 16, 30, 0.6);
+  padding: 6px;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border-color);
+  width: fit-content;
+}
+
+.main-tab-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  font-family: var(--font-body);
+  font-size: 0.95rem;
+  font-weight: 700;
+  padding: 10px 22px;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: all 0.25s ease;
+  user-select: none;
+}
+
+.main-tab-btn:hover {
+  color: #ffffff;
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.main-tab-btn.active {
+  background: linear-gradient(135deg, rgba(0, 240, 255, 0.18), rgba(37, 99, 235, 0.25));
+  color: #ffffff;
+  border: 1px solid rgba(0, 240, 255, 0.4);
+  box-shadow: 0 4px 15px rgba(0, 240, 255, 0.2);
+}
+
+.tab-btn-icon {
+  font-size: 1.15rem;
+}
+
+.tab-badge {
+  background: var(--accent-pink);
+  color: #ffffff;
+  font-size: 0.75rem;
+  font-weight: 800;
+  padding: 2px 7px;
+  border-radius: var(--radius-full);
+}
+
+.view-content {
+  animation: fadeInView 0.3s ease;
+}
+
+@keyframes fadeInView {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ========================================================= */
+/* ABA: INSCRIÇÃO E GERENCIAMENTO DE JOGADORES               */
+/* ========================================================= */
+.players-manager-card {
+  max-width: 900px;
+  margin: 0 auto 30px;
+}
+
+.info-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  background: rgba(0, 240, 255, 0.08);
+  border: 1px solid rgba(0, 240, 255, 0.25);
+  border-radius: var(--radius-md);
+  padding: 16px 20px;
+  color: var(--text-main);
+  font-size: 0.92rem;
+  line-height: 1.5;
+  margin-bottom: 24px;
+}
+
+.info-banner-icon {
+  font-size: 1.4rem;
+  flex-shrink: 0;
+}
+
+.tournament-summary-strip {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 12px;
+  margin-bottom: 28px;
+}
+
+.summary-pill {
+  background: rgba(8, 12, 22, 0.7);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.summary-pill-label {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  font-weight: 700;
+  letter-spacing: 0.5px;
+}
+
+.summary-pill-value {
+  font-family: var(--font-display);
+  font-size: 1.9rem;
+  font-weight: 700;
+  color: #ffffff;
+  line-height: 1;
+}
+
+.text-cyan {
+  color: var(--accent-cyan);
+}
+
+.section-minor-title {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #ffffff;
+  margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Formulário de Adicionar Jogador */
+.add-player-form-wrapper {
+  background: rgba(14, 21, 38, 0.7);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  padding: 20px;
+  margin-bottom: 30px;
+}
+
+.add-player-form {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.input-group {
+  flex: 1;
+  min-width: 260px;
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.input-icon {
+  position: absolute;
+  left: 14px;
+  font-size: 1.1rem;
+  color: var(--text-muted);
+  pointer-events: none;
+}
+
+.text-input {
+  width: 100%;
+  background: var(--bg-input);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: var(--radius-md);
+  color: #ffffff;
+  font-family: var(--font-body);
+  font-size: 0.95rem;
+  font-weight: 600;
+  padding: 12px 16px 12px 44px;
+  outline: none;
+  transition: all 0.2s ease;
+}
+
+.text-input:focus {
+  border-color: var(--accent-cyan);
+  box-shadow: 0 0 12px rgba(0, 240, 255, 0.3);
+}
+
+.text-input::placeholder {
+  color: var(--text-subtle);
+  font-weight: 500;
+}
+
+.btn-primary {
+  background: linear-gradient(135deg, #00d2ff, #0077ff);
+  color: #ffffff;
+  font-weight: 700;
+  box-shadow: 0 4px 15px rgba(0, 150, 255, 0.35);
+}
+
+.btn-primary:hover {
+  background: linear-gradient(135deg, #25e0ff, #0090ff);
+  box-shadow: 0 6px 20px rgba(0, 210, 255, 0.5);
+  transform: translateY(-1px);
+}
+
+/* Grade de Jogadores Inscritos */
+.enrolled-players-section {
+  background: rgba(14, 21, 38, 0.5);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  padding: 20px;
+}
+
+.enrolled-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.enrolled-note {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  background: rgba(255, 255, 255, 0.05);
+  padding: 3px 10px;
+  border-radius: var(--radius-full);
+}
+
+.players-list-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 14px;
+}
+
+.player-item-card {
+  background: rgba(20, 30, 56, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: var(--radius-md);
+  padding: 14px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  transition: all 0.2s ease;
+}
+
+.player-item-card:hover {
+  border-color: rgba(0, 240, 255, 0.3);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.4);
+}
+
+.player-card-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
+.player-card-avatar {
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #1e3a8a, #0f172a);
+  border: 2px solid rgba(0, 240, 255, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-display);
+  font-size: 1.3rem;
+  font-weight: 700;
+  color: var(--accent-cyan);
+  flex-shrink: 0;
+}
+
+.player-card-info {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.player-card-name {
+  font-size: 1rem;
+  font-weight: 700;
+  color: #ffffff;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.player-card-sub {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+.btn-remove-player {
+  background: rgba(255, 51, 102, 0.1);
+  border: 1px solid rgba(255, 51, 102, 0.25);
+  color: #ff6b8b;
+  width: 34px;
+  height: 34px;
+  border-radius: var(--radius-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  flex-shrink: 0;
+}
+
+.btn-remove-player:hover {
+  background: rgba(255, 51, 102, 0.25);
+  border-color: rgba(255, 51, 102, 0.5);
+  color: #ffffff;
+  transform: scale(1.05);
+}
+
 /* Responsividade Mobile */
 @media (max-width: 640px) {
   .container {

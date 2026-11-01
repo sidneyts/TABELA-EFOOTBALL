@@ -26,7 +26,7 @@
           <span class="badge-tag">eFOOTBALL</span>
         </div>
         <h1 class="main-title">CAMPEONATO DE PONTOS CORRIDOS</h1>
-        <p class="subtitle">4 Jogadores • 6 Rodadas (Turno e Returno) • Vitória = 3 pts | Empate = 1 pt</p>
+        <p id="headerSubtitle" class="subtitle">4 Jogadores • 6 Rodadas (Turno e Returno) • Vitória = 3 pts | Empate = 1 pt</p>
       </div>
 
       <div class="header-actions">
@@ -41,145 +41,239 @@
       </div>
     </header>
 
-    <!-- Banner do Campeão (exibido quando definido) -->
-    <section id="championBanner" class="champion-banner hidden">
-      <div class="trophy-glow">🏆</div>
-      <div class="champion-content">
-        <span class="champion-tag">CAMPEÃO DO TORNEIO</span>
-        <h2 id="championName" class="champion-name">SIDNEY</h2>
-        <p id="championDetails" class="champion-details">Completou as 6 rodadas no topo da tabela!</p>
-      </div>
-      <button id="btnCelebration" class="btn btn-gold">
-        <span>🎉 Soltar Confetes</span>
+    <!-- Navegação Principal entre Abas -->
+    <nav class="main-nav-tabs">
+      <button id="navTabTournament" class="main-tab-btn active" data-view="tournament">
+        <span class="tab-btn-icon">🏆</span>
+        <span>Tabela & Jogos</span>
       </button>
-    </section>
+      <button id="navTabPlayers" class="main-tab-btn" data-view="players">
+        <span class="tab-btn-icon">👥</span>
+        <span>Inscrever Jogadores</span>
+        <span id="playersCountBadge" class="tab-badge">4</span>
+      </button>
+    </nav>
 
-    <!-- Grid Principal: Tabela e Estatísticas -->
-    <main class="content-grid">
-      <!-- Coluna da Tabela de Classificação -->
-      <section class="card table-card">
-        <div class="card-header">
-          <div class="card-title-group">
-            <span class="card-icon">📊</span>
-            <div>
-              <h2 class="card-title">Tabela de Classificação</h2>
-              <span class="card-subtitle">Atualizada automaticamente a cada gol</span>
-            </div>
-          </div>
-          <div class="progress-pill">
-            <span id="tournamentProgressText">0 / 12 Jogos</span>
-            <div class="progress-bar-bg">
-              <div id="tournamentProgressBar" class="progress-bar-fill" style="width: 0%"></div>
-            </div>
-          </div>
+    <!-- ABA 1: TABELA E JOGOS -->
+    <div id="viewTournament" class="view-content active">
+      <!-- Banner do Campeão (exibido quando definido) -->
+      <section id="championBanner" class="champion-banner hidden">
+        <div class="trophy-glow">🏆</div>
+        <div class="champion-content">
+          <span class="champion-tag">CAMPEÃO DO TORNEIO</span>
+          <h2 id="championName" class="champion-name">SIDNEY</h2>
+          <p id="championDetails" class="champion-details">Completou as rodadas no topo da tabela!</p>
         </div>
-
-        <div class="table-responsive">
-          <table class="standings-table">
-            <thead>
-              <tr>
-                <th class="th-pos">#</th>
-                <th class="th-player">Jogador</th>
-                <th class="th-num" title="Pontos">PTS</th>
-                <th class="th-num" title="Jogos">J</th>
-                <th class="th-num" title="Vitórias">V</th>
-                <th class="th-num" title="Empates">E</th>
-                <th class="th-num" title="Derrotas">D</th>
-                <th class="th-num" title="Gols Pró">GP</th>
-                <th class="th-num" title="Gols Contra">GC</th>
-                <th class="th-num" title="Saldo de Gols">SG</th>
-                <th class="th-num" title="Aproveitamento">%</th>
-                <th class="th-form">Forma</th>
-              </tr>
-            </thead>
-            <tbody id="standingsBody">
-              <!-- Renderizado via JavaScript -->
-            </tbody>
-          </table>
-        </div>
-
-        <div class="table-footer-legend">
-          <div class="legend-item"><span class="pos-badge pos-1">1</span> Campeão (Líder)</div>
-          <div class="legend-item"><span class="form-badge form-w">V</span> Vitória</div>
-          <div class="legend-item"><span class="form-badge form-d">E</span> Empate</div>
-          <div class="legend-item"><span class="form-badge form-l">D</span> Derrota</div>
-        </div>
+        <button id="btnCelebration" class="btn btn-gold">
+          <span>🎉 Soltar Confetes</span>
+        </button>
       </section>
 
-      <!-- Painel de Destaques / Estatísticas Rápidas -->
-      <section class="card stats-card">
+      <!-- Grid Principal: Tabela e Estatísticas -->
+      <main class="content-grid">
+        <!-- Coluna da Tabela de Classificação -->
+        <section class="card table-card">
+          <div class="card-header">
+            <div class="card-title-group">
+              <span class="card-icon">📊</span>
+              <div>
+                <h2 class="card-title">Tabela de Classificação</h2>
+                <span class="card-subtitle">Atualizada automaticamente a cada gol</span>
+              </div>
+            </div>
+            <div class="progress-pill">
+              <span id="tournamentProgressText">0 / 12 Jogos</span>
+              <div class="progress-bar-bg">
+                <div id="tournamentProgressBar" class="progress-bar-fill" style="width: 0%"></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="table-responsive">
+            <table class="standings-table">
+              <thead>
+                <tr>
+                  <th class="th-pos">#</th>
+                  <th class="th-player">Jogador</th>
+                  <th class="th-num" title="Pontos">PTS</th>
+                  <th class="th-num" title="Jogos">J</th>
+                  <th class="th-num" title="Vitórias">V</th>
+                  <th class="th-num" title="Empates">E</th>
+                  <th class="th-num" title="Derrotas">D</th>
+                  <th class="th-num" title="Gols Pró">GP</th>
+                  <th class="th-num" title="Gols Contra">GC</th>
+                  <th class="th-num" title="Saldo de Gols">SG</th>
+                  <th class="th-num" title="Aproveitamento">%</th>
+                  <th class="th-form">Forma</th>
+                </tr>
+              </thead>
+              <tbody id="standingsBody">
+                <!-- Renderizado via JavaScript -->
+              </tbody>
+            </table>
+          </div>
+
+          <div class="table-footer-legend">
+            <div class="legend-item"><span class="pos-badge pos-1">1</span> Campeão (Líder)</div>
+            <div class="legend-item"><span class="form-badge form-w">V</span> Vitória</div>
+            <div class="legend-item"><span class="form-badge form-d">E</span> Empate</div>
+            <div class="legend-item"><span class="form-badge form-l">D</span> Derrota</div>
+          </div>
+        </section>
+
+        <!-- Painel de Destaques / Estatísticas Rápidas -->
+        <section class="card stats-card">
+          <div class="card-header">
+            <div class="card-title-group">
+              <span class="card-icon">⚡</span>
+              <div>
+                <h2 class="card-title">Estatísticas</h2>
+                <span class="card-subtitle">Desempenho geral do campeonato</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="stats-grid">
+            <div class="stat-box">
+              <span class="stat-label">Total de Gols</span>
+              <span id="statTotalGoals" class="stat-value">0</span>
+              <span class="stat-sub">nas partidas</span>
+            </div>
+            <div class="stat-box">
+              <span class="stat-label">Média por Partida</span>
+              <span id="statAvgGoals" class="stat-value">0.0</span>
+              <span class="stat-sub">gols / jogo</span>
+            </div>
+            <div class="stat-box">
+              <span class="stat-label">Melhor Ataque</span>
+              <span id="statBestAttack" class="stat-value highlight-cyan">-</span>
+              <span id="statBestAttackGoals" class="stat-sub">0 gols</span>
+            </div>
+            <div class="stat-box">
+              <span class="stat-label">Melhor Defesa</span>
+              <span id="statBestDefense" class="stat-value highlight-pink">-</span>
+              <span id="statBestDefenseGoals" class="stat-sub">0 gols sofridos</span>
+            </div>
+          </div>
+
+          <!-- Critérios de Desempate -->
+          <div class="rules-card">
+            <h3 class="rules-title">📌 Critérios de Classificação</h3>
+            <ol class="rules-list">
+              <li><strong>Maior pontuação</strong> (PTS)</li>
+              <li><strong>Maior número de vitórias</strong> (V)</li>
+              <li><strong>Melhor saldo de gols</strong> (SG = GP - GC)</li>
+              <li><strong>Maior número de gols pró</strong> (GP)</li>
+              <li><strong>Menor número de gols sofridos</strong> (GC)</li>
+              <li><strong>Confronto direto</strong></li>
+            </ol>
+          </div>
+        </section>
+      </main>
+
+      <!-- Seção de Rodadas e Jogos -->
+      <section class="card matches-section">
+        <div class="card-header matches-header">
+          <div class="card-title-group">
+            <span class="card-icon">🎮</span>
+            <div>
+              <h2 class="card-title">Jogos e Rodadas</h2>
+              <span class="card-subtitle">Preencha os placares das partidas abaixo</span>
+            </div>
+          </div>
+
+          <!-- Filtro de Rodadas -->
+          <div class="round-tabs" id="roundTabs">
+            <button class="tab-btn active" data-filter="all">Todas as Rodadas</button>
+            <button class="tab-btn" data-filter="turno">Turno (Ida)</button>
+            <button class="tab-btn" data-filter="returno">Returno (Volta)</button>
+          </div>
+        </div>
+
+        <!-- Container das Rodadas -->
+        <div id="roundsContainer" class="rounds-container">
+          <!-- Renderizado dinamicamente via JS -->
+        </div>
+      </section>
+    </div>
+
+    <!-- ABA 2: INSCRIÇÃO E GERENCIAMENTO DE JOGADORES -->
+    <div id="viewPlayers" class="view-content hidden">
+      <section class="card players-manager-card">
         <div class="card-header">
           <div class="card-title-group">
-            <span class="card-icon">⚡</span>
+            <span class="card-icon">👥</span>
             <div>
-              <h2 class="card-title">Estatísticas</h2>
-              <span class="card-subtitle">Desempenho geral do campeonato</span>
+              <h2 class="card-title">Inscrição de Jogadores</h2>
+              <span class="card-subtitle">Adicione ou remova amigos do campeonato</span>
             </div>
           </div>
         </div>
 
-        <div class="stats-grid">
-          <div class="stat-box">
-            <span class="stat-label">Total de Gols</span>
-            <span id="statTotalGoals" class="stat-value">0</span>
-            <span class="stat-sub">nas partidas</span>
-          </div>
-          <div class="stat-box">
-            <span class="stat-label">Média por Partida</span>
-            <span id="statAvgGoals" class="stat-value">0.0</span>
-            <span class="stat-sub">gols / jogo</span>
-          </div>
-          <div class="stat-box">
-            <span class="stat-label">Melhor Ataque</span>
-            <span id="statBestAttack" class="stat-value highlight-cyan">-</span>
-            <span id="statBestAttackGoals" class="stat-sub">0 gols</span>
-          </div>
-          <div class="stat-box">
-            <span class="stat-label">Melhor Defesa</span>
-            <span id="statBestDefense" class="stat-value highlight-pink">-</span>
-            <span id="statBestDefenseGoals" class="stat-sub">0 gols sofridos</span>
-          </div>
-        </div>
-
-        <!-- Critérios de Desempate -->
-        <div class="rules-card">
-          <h3 class="rules-title">📌 Critérios de Classificação</h3>
-          <ol class="rules-list">
-            <li><strong>Maior pontuação</strong> (PTS)</li>
-            <li><strong>Maior número de vitórias</strong> (V)</li>
-            <li><strong>Melhor saldo de gols</strong> (SG = GP - GC)</li>
-            <li><strong>Maior número de gols pró</strong> (GP)</li>
-            <li><strong>Menor número de gols sofridos</strong> (GC)</li>
-            <li><strong>Confronto direto</strong></li>
-          </ol>
-        </div>
-      </section>
-    </main>
-
-    <!-- Seção de Rodadas e Jogos -->
-    <section class="card matches-section">
-      <div class="card-header matches-header">
-        <div class="card-title-group">
-          <span class="card-icon">🎮</span>
+        <!-- Banner Explicativo -->
+        <div class="info-banner">
+          <span class="info-banner-icon">💡</span>
           <div>
-            <h2 class="card-title">Jogos e Rodadas</h2>
-            <span class="card-subtitle">Preencha os placares das partidas abaixo</span>
+            <strong>Ajuste Automático do Torneio:</strong>
+            Ao cadastrar ou remover jogadores, o sistema recalcula automaticamente a tabela completa de confrontos com 
+            <strong>Turno e Returno (Ida e Volta)</strong> para que todos joguem contra todos equilibradamente!
           </div>
         </div>
 
-        <!-- Filtro de Rodadas -->
-        <div class="round-tabs" id="roundTabs">
-          <button class="tab-btn active" data-filter="all">Todas (6)</button>
-          <button class="tab-btn" data-filter="turno">Turno (Ida)</button>
-          <button class="tab-btn" data-filter="returno">Returno (Volta)</button>
+        <!-- Resumo do Torneio Atual -->
+        <div class="tournament-summary-strip">
+          <div class="summary-pill">
+            <span class="summary-pill-label">Jogadores Inscritos</span>
+            <span id="summaryPlayersCount" class="summary-pill-value">4</span>
+          </div>
+          <div class="summary-pill">
+            <span class="summary-pill-label">Total de Rodadas</span>
+            <span id="summaryRoundsCount" class="summary-pill-value">6</span>
+          </div>
+          <div class="summary-pill">
+            <span class="summary-pill-label">Total de Partidas</span>
+            <span id="summaryMatchesCount" class="summary-pill-value">12</span>
+          </div>
+          <div class="summary-pill">
+            <span class="summary-pill-label">Formato</span>
+            <span class="summary-pill-value text-cyan">Ida e Volta</span>
+          </div>
         </div>
-      </div>
 
-      <!-- Container das Rodadas -->
-      <div id="roundsContainer" class="rounds-container">
-        <!-- Renderizado dinamicamente via JS -->
-      </div>
-    </section>
+        <!-- Formulário de Inscrição -->
+        <div class="add-player-form-wrapper">
+          <h3 class="section-minor-title">Novo Jogador</h3>
+          <form id="formAddPlayer" class="add-player-form" onsubmit="return false;">
+            <div class="input-group">
+              <span class="input-icon">🎮</span>
+              <input 
+                type="text" 
+                id="inputPlayerName" 
+                class="text-input" 
+                placeholder="Nome do jogador (ex: Lucas, Matheus, Roberto...)" 
+                maxlength="20"
+                autocomplete="off"
+              />
+            </div>
+            <button type="button" id="btnAddPlayer" class="btn btn-primary">
+              <span class="btn-icon">➕</span>
+              <span>Inscrever Jogador</span>
+            </button>
+          </form>
+        </div>
+
+        <!-- Lista de Jogadores Inscritos -->
+        <div class="enrolled-players-section">
+          <div class="enrolled-header">
+            <h3 class="section-minor-title">Jogadores Atuais no Campeonato</h3>
+            <span class="enrolled-note">Mínimo de 3 jogadores</span>
+          </div>
+          <div id="playersListGrid" class="players-list-grid">
+            <!-- Renderizado dinamicamente via JS -->
+          </div>
+        </div>
+      </section>
+    </div>
 
     <!-- Rodapé -->
     <footer class="footer">
@@ -211,4 +305,3 @@
   <script src="app.js"></script>
 </body>
 </html>
-
