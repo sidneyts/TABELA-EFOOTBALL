@@ -59,27 +59,107 @@
       </div>
     </header>
 
-    <!-- Navegação Principal entre Abas -->
-    <nav class="main-nav-tabs">
-      <button id="navTabTournament" class="main-tab-btn active" data-view="tournament">
-        <span class="tab-btn-icon">🏆</span>
-        <span>Pontos Corridos</span>
+    <!-- Barra Superior: Toggle Estilo Tabela vs Estilo Mata-Mata + Menu Sanduíche Separado -->
+    <div class="top-nav-bar">
+      <nav class="mode-toggle-switch" aria-label="Alternar modo de campeonato">
+        <button id="navTabTournament" class="mode-toggle-btn active" data-view="tournament">
+          <span class="tab-btn-icon">🏆</span>
+          <span>Estilo Tabela (Pontos Corridos)</span>
+        </button>
+        <button id="navTabKnockout" class="mode-toggle-btn" data-view="knockout">
+          <span class="tab-btn-icon">⚡</span>
+          <span>Estilo Campeonato (Mata-Mata)</span>
+        </button>
+      </nav>
+
+      <!-- Botão do Menu Sanduíche Separado -->
+      <button type="button" id="btnHamburgerMenu" class="hamburger-trigger-btn" aria-label="Abrir menu de jogadores e histórico">
+        <span class="hamburger-bars">
+          <span></span>
+          <span></span>
+          <span></span>
+        </span>
+        <span class="hamburger-label">Menu</span>
+        <span id="hamburgerActiveIndicator" class="hamburger-dot"></span>
       </button>
-      <button id="navTabKnockout" class="main-tab-btn" data-view="knockout">
-        <span class="tab-btn-icon">⚡</span>
-        <span>Mata-Mata (Sorteio)</span>
-      </button>
-      <button id="navTabHistory" class="main-tab-btn" data-view="history">
-        <span class="tab-btn-icon">🏅</span>
-        <span>Histórico & Campeões</span>
-        <span id="historyCountBadge" class="tab-badge">0</span>
-      </button>
-      <button id="navTabPlayers" class="main-tab-btn" data-view="players">
-        <span class="tab-btn-icon">👥</span>
-        <span>Inscrever Jogadores</span>
-        <span id="playersCountBadge" class="tab-badge">4</span>
-      </button>
-    </nav>
+    </div>
+
+    <!-- Gaveta do Menu Sanduíche (Inscrever Jogadores e Histórico de Campeonatos) -->
+    <div id="hamburgerBackdrop" class="hamburger-backdrop hidden"></div>
+    <aside id="hamburgerDrawer" class="hamburger-drawer hidden" aria-label="Menu Secundário">
+      <div class="drawer-header">
+        <div class="drawer-brand">
+          <span class="badge-icon">⚽</span>
+          <div>
+            <h3 class="drawer-title">Menu do Torneio</h3>
+            <p class="drawer-subtitle">Jogadores, Fotos e Sala de Troféus</p>
+          </div>
+        </div>
+        <button type="button" id="btnCloseHamburger" class="btn-close-drawer" title="Fechar menu">✕</button>
+      </div>
+
+      <div class="drawer-body">
+        <div class="drawer-section-label">Gerenciamento & Histórico</div>
+
+        <button type="button" id="navTabPlayers" class="drawer-menu-item" data-view="players">
+          <div class="drawer-item-left">
+            <span class="drawer-item-icon">👥</span>
+            <div class="drawer-item-text">
+              <span class="drawer-item-title">Inscrever Jogadores & Fotos</span>
+              <span class="drawer-item-desc">Cadastrar amigos e anexar fotos de perfil</span>
+            </div>
+          </div>
+          <span id="playersCountBadge" class="tab-badge">4</span>
+        </button>
+
+        <button type="button" id="navTabHistory" class="drawer-menu-item" data-view="history">
+          <div class="drawer-item-left">
+            <span class="drawer-item-icon">🏅</span>
+            <div class="drawer-item-text">
+              <span class="drawer-item-title">Histórico de Campeonatos</span>
+              <span class="drawer-item-desc">Sala de Troféus e campeonatos salvos</span>
+            </div>
+          </div>
+          <span id="historyCountBadge" class="tab-badge">0</span>
+        </button>
+
+        <div class="drawer-divider"></div>
+        <div class="drawer-section-label">Atalhos Rápidos</div>
+
+        <button type="button" id="drawerBtnBackToTournament" class="drawer-menu-item">
+          <div class="drawer-item-left">
+            <span class="drawer-item-icon">🎮</span>
+            <div class="drawer-item-text">
+              <span class="drawer-item-title">Voltar para o Campeonato</span>
+              <span class="drawer-item-desc">Ir para Tabela ou Chaveamento Mata-Mata</span>
+            </div>
+          </div>
+        </button>
+
+        <button type="button" id="drawerBtnUserProfile" class="drawer-menu-item">
+          <div class="drawer-item-left">
+            <span class="drawer-item-icon">👤</span>
+            <div class="drawer-item-text">
+              <span class="drawer-item-title">Trocar Meu Nome de Usuário</span>
+              <span class="drawer-item-desc">Identificar quem está editando os placares</span>
+            </div>
+          </div>
+        </button>
+
+        <button type="button" id="drawerBtnSaveHistory" class="drawer-menu-item">
+          <div class="drawer-item-left">
+            <span class="drawer-item-icon">💾</span>
+            <div class="drawer-item-text">
+              <span class="drawer-item-title">Salvar Campeonato no Histórico</span>
+              <span class="drawer-item-desc">Arquivar resultado atual na Sala de Troféus</span>
+            </div>
+          </div>
+        </button>
+      </div>
+    </aside>
+
+    <!-- Input de Arquivo Oculto para Upload de Foto de Jogador -->
+    <input type="file" id="hiddenPhotoFileInput" accept="image/*" class="hidden" />
 
     <!-- ABA 1: TABELA E JOGOS -->
     <div id="viewTournament" class="view-content active">
@@ -236,19 +316,21 @@
           <div class="card-title-group">
             <span class="card-icon">👥</span>
             <div>
-              <h2 class="card-title">Inscrição de Jogadores</h2>
-              <span class="card-subtitle">Adicione ou remova amigos do campeonato</span>
+              <h2 class="card-title">Inscrição de Jogadores & Fotos</h2>
+              <span class="card-subtitle">Adicione amigos e anexe a foto de cada jogador para o Mata-Mata e Tabela</span>
             </div>
           </div>
+          <button type="button" class="btn btn-secondary" onclick="returnToActiveCompetition()">
+            <span>← Voltar ao Campeonato</span>
+          </button>
         </div>
 
         <!-- Banner Explicativo -->
         <div class="info-banner">
-          <span class="info-banner-icon">💡</span>
+          <span class="info-banner-icon">📸</span>
           <div>
-            <strong>Ajuste Automático do Torneio:</strong>
-            Ao cadastrar ou remover jogadores, o sistema recalcula automaticamente a tabela completa de confrontos com 
-            <strong>Turno e Returno (Ida e Volta)</strong> para que todos joguem contra todos equilibradamente!
+            <strong>Fotos dos Jogadores & Ajuste Automático:</strong>
+            Você pode anexar uma foto para cada jogador clicando em <strong>"📷 Foto"</strong> no card dele ou ao cadastrar um novo jogador. As fotos aparecem sincronizadas em tempo real no campo de <strong>Mata-Mata</strong>!
           </div>
         </div>
 
@@ -276,6 +358,10 @@
         <div class="add-player-form-wrapper">
           <h3 class="section-minor-title">Novo Jogador</h3>
           <form id="formAddPlayer" class="add-player-form" onsubmit="return false;">
+            <button type="button" id="btnSelectNewPlayerPhoto" class="new-player-photo-picker" title="Anexar foto do novo jogador">
+              <img id="newPlayerPhotoPreviewImg" class="hidden" alt="Preview" />
+              <span id="newPlayerPhotoPlaceholder">📷 Foto</span>
+            </button>
             <div class="input-group">
               <span class="input-icon">🎮</span>
               <input 
@@ -338,10 +424,24 @@
           </div>
 
           <div class="knockout-controls">
+            <!-- Opção de Visualização: Foto + Nome | Só Fotos | Só Nomes -->
+            <div class="ko-display-mode-group" role="group" aria-label="Modo de visualização dos jogadores">
+              <span class="format-label">Visual:</span>
+              <button type="button" class="ko-display-btn active" data-ko-display="photo_name" title="Exibir Foto e Nome">
+                🖼️ Foto + Nome
+              </button>
+              <button type="button" class="ko-display-btn" data-ko-display="photo_only" title="Exibir Somente as Fotos">
+                📸 Só Fotos
+              </button>
+              <button type="button" class="ko-display-btn" data-ko-display="name_only" title="Exibir Somente os Nomes">
+                🔤 Só Nomes
+              </button>
+            </div>
+
             <div class="knockout-format-group">
               <label for="selectKnockoutFormat" class="format-label">Formato:</label>
               <select id="selectKnockoutFormat" class="select-input">
-                <option value="two_legs" selected>Ida e Volta (Final em Jogo Único)</option>
+                <option value="two_legs" selected>Ida e Volta (Final Jogo Único)</option>
                 <option value="single">Tudo em Jogo Único</option>
               </select>
             </div>
@@ -382,10 +482,15 @@
               <span class="card-subtitle">Contagem histórica de títulos acumulados em todos os campeonatos salvos</span>
             </div>
           </div>
-          <button type="button" id="btnQuickSaveCurrent" class="btn btn-gold-outline">
-            <span class="btn-icon">💾</span>
-            <span>Arquivar Campeonato Atual</span>
-          </button>
+          <div class="hall-header-actions" style="display: flex; gap: 10px; flex-wrap: wrap;">
+            <button type="button" id="btnQuickSaveCurrent" class="btn btn-gold-outline">
+              <span class="btn-icon">💾</span>
+              <span>Arquivar Campeonato Atual</span>
+            </button>
+            <button type="button" class="btn btn-secondary" onclick="returnToActiveCompetition()">
+              <span>← Voltar ao Campeonato</span>
+            </button>
+          </div>
         </div>
 
         <div id="hallOfFameGrid" class="hall-of-fame-grid">
