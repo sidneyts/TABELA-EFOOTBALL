@@ -21,9 +21,15 @@
     <!-- Header -->
     <header class="header">
       <div class="header-brand">
-        <div class="logo-badge">
-          <span class="badge-icon">⚽</span>
-          <span class="badge-tag">eFOOTBALL</span>
+        <div class="brand-top-row">
+          <div class="logo-badge">
+            <span class="badge-icon">⚽</span>
+            <span class="badge-tag">eFOOTBALL</span>
+          </div>
+          <div id="cloudSyncBadge" class="cloud-sync-badge" title="Status da sincronização em tempo real na nuvem">
+            <span class="sync-dot online"></span>
+            <span id="cloudSyncText">Conectando em tempo real...</span>
+          </div>
         </div>
         <h1 class="main-title">CAMPEONATO DE PONTOS CORRIDOS</h1>
         <p id="headerSubtitle" class="subtitle">4 Jogadores • 6 Rodadas (Turno e Returno) • Vitória = 3 pts | Empate = 1 pt</p>
@@ -278,7 +284,7 @@
     <!-- Rodapé -->
     <footer class="footer">
       <p>eFootball League Manager • Desenvolvido para torneios competitivos entre amigos</p>
-      <p class="footer-note">Os dados ficam salvos automaticamente no seu navegador.</p>
+      <p class="footer-note">⚡ Sincronizado em tempo real na nuvem para todos os jogadores simultaneamente.</p>
     </footer>
   </div>
 
@@ -302,6 +308,9 @@
   <!-- Pop-up Dedicado de Notificação / Toast (Substitui alert()) -->
   <div id="toastContainer" class="toast-container" aria-live="polite"></div>
 
+  <!-- Firebase SDK para Sincronização em Tempo Real na Nuvem -->
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
   <script src="app.js"></script>
 </body>
 </html>

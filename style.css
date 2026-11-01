@@ -88,7 +88,8 @@ body {
 }
 
 .container {
-  max-width: 1240px;
+  max-width: 1480px;
+  width: 95%;
   margin: 0 auto;
   padding: 24px 20px 60px;
 }
@@ -105,6 +106,14 @@ body {
   border-bottom: 1px solid var(--border-color);
 }
 
+.brand-top-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 8px;
+}
+
 .logo-badge {
   display: inline-flex;
   align-items: center;
@@ -113,7 +122,60 @@ body {
   border: 1px solid rgba(0, 240, 255, 0.3);
   padding: 4px 14px;
   border-radius: var(--radius-full);
-  margin-bottom: 8px;
+}
+
+.cloud-sync-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  background: rgba(0, 230, 118, 0.08);
+  border: 1px solid rgba(0, 230, 118, 0.25);
+  padding: 4px 12px;
+  border-radius: var(--radius-full);
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: #a7f3d0;
+  letter-spacing: 0.3px;
+  transition: all 0.25s ease;
+}
+
+.cloud-sync-badge.offline {
+  background: rgba(255, 51, 102, 0.1);
+  border-color: rgba(255, 51, 102, 0.3);
+  color: #fca5a5;
+}
+
+.cloud-sync-badge.syncing {
+  background: rgba(0, 240, 255, 0.1);
+  border-color: rgba(0, 240, 255, 0.3);
+  color: var(--accent-cyan);
+}
+
+.sync-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--accent-green);
+  box-shadow: 0 0 8px var(--accent-green);
+  display: inline-block;
+  animation: pulseDot 2s infinite;
+}
+
+.sync-dot.offline {
+  background: var(--accent-red);
+  box-shadow: 0 0 8px var(--accent-red);
+  animation: none;
+}
+
+.sync-dot.syncing {
+  background: var(--accent-cyan);
+  box-shadow: 0 0 8px var(--accent-cyan);
+}
+
+@keyframes pulseDot {
+  0% { transform: scale(0.95); opacity: 0.7; }
+  50% { transform: scale(1.15); opacity: 1; }
+  100% { transform: scale(0.95); opacity: 0.7; }
 }
 
 .badge-tag {
@@ -650,8 +712,8 @@ body {
 /* Container de Rodadas */
 .rounds-container {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
-  gap: 20px;
+  grid-template-columns: repeat(auto-fit, minmax(420px, 1fr));
+  gap: 22px;
   margin-top: 20px;
 }
 
@@ -660,7 +722,7 @@ body {
   background: rgba(10, 16, 30, 0.75);
   border: 1px solid var(--border-color);
   border-radius: var(--radius-md);
-  padding: 16px;
+  padding: 18px 20px;
   transition: transform 0.2s, border-color 0.2s;
 }
 
@@ -679,7 +741,7 @@ body {
 
 .round-title {
   font-family: var(--font-display);
-  font-size: 1.45rem;
+  font-size: 1.55rem;
   font-weight: 700;
   letter-spacing: 0.8px;
   color: #ffffff;
@@ -689,11 +751,11 @@ body {
 }
 
 .round-phase-tag {
-  font-size: 0.72rem;
+  font-size: 0.75rem;
   font-family: var(--font-body);
   font-weight: 700;
   letter-spacing: 0.8px;
-  padding: 3px 8px;
+  padding: 3px 10px;
   border-radius: var(--radius-full);
   text-transform: uppercase;
 }
@@ -721,7 +783,7 @@ body {
   background: rgba(16, 25, 48, 0.85);
   border: 1px solid rgba(255, 255, 255, 0.06);
   border-radius: var(--radius-md);
-  padding: 14px 12px;
+  padding: 16px 18px;
   position: relative;
   transition: all 0.2s ease;
 }
@@ -747,15 +809,15 @@ body {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 10px;
+  gap: 16px;
 }
 
 .team-box {
-  flex: 1;
+  flex: 1 1 0;
+  min-width: 100px;
   display: flex;
   align-items: center;
-  gap: 8px;
-  min-width: 0;
+  gap: 10px;
 }
 
 .team-home {
@@ -769,11 +831,11 @@ body {
 
 .team-name {
   font-weight: 700;
-  font-size: 0.95rem;
+  font-size: 1.05rem;
   color: var(--text-main);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  white-space: normal;
+  word-break: break-word;
+  line-height: 1.25;
 }
 
 .team-is-winner {
@@ -791,6 +853,7 @@ body {
   display: flex;
   align-items: center;
   gap: 6px;
+  flex-shrink: 0;
 }
 
 .score-control {

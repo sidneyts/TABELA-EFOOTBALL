@@ -1,17 +1,27 @@
 /**
  * eFootball League Manager
  * Campeonato de Pontos Corridos | Turno e Returno (Ida e Volta)
- * Sistema Dinâmico de Inscrição e Ajuste Automático de Rodadas
+ * Sincronização em Tempo Real na Nuvem com Google Firebase Firestore
  */
 
-// Chaves de armazenamento local
+// Configuração Oficial do Firebase (Projeto banco-futebol)
+const FIREBASE_CONFIG = {
+  apiKey: "AIzaSyDVwG8asau-f1ZHgIotOTC91d5Gt4l_B3U",
+  authDomain: "banco-futebol.firebaseapp.com",
+  projectId: "banco-futebol",
+  storageBucket: "banco-futebol.firebasestorage.app",
+  messagingSenderId: "346507976544",
+  appId: "1:346507976544:web:33d450493cf503f7b24805"
+};
+
+// Chaves de armazenamento local (Cache e fallback offline)
 const STORAGE_PLAYERS_KEY = 'efootball_league_players_v2';
 const STORAGE_MATCHES_KEY = 'efootball_league_matches_v2';
 
-// Lista de jogadores padrão inicial
+// Lista de jogadores inicial
 const INITIAL_PLAYERS = ['Sidney', 'Miguel', 'Gabriel', 'Pedro'];
 
-// Jogos reais das rodadas 1 e 2 (caso os jogadores sejam exatamente os 4 originais)
+// Jogos reais das rodadas 1 e 2
 const DEFAULT_MATCHES_4 = [
   // TURNO (Ida)
   { id: 1, round: 1, phase: 'turno', home: 'Miguel', away: 'Pedro', homeScore: 1, awayScore: 2 },
@@ -41,17 +51,27 @@ let currentFilter = 'all'; // 'all', 'turno', 'returno'
 let activeTab = 'tournament'; // 'tournament', 'players'
 let hasCelebrated = false;
 
+// Instâncias do Firebase
+let db = null;
+let tournamentDocRef = null;
+let isCloudConnected = false;
+let cloudSyncTimeout = null;
+
 /* ==========================================================================
    Inicialização e Carregamento de Dados
    ========================================================================== */
 function init() {
-  loadData();
+  loadLocalBackup();
   setupEventListeners();
   renderApp();
+  initFirebaseRealtime();
 }
 
 function loadData() {
-  // Carrega jogadores
+  loadLocalBackup();
+}
+
+function loadLocalBackup() {
   const storedPlayers = localStorage.getItem(STORAGE_PLAYERS_KEY);
   if (storedPlayers) {
     try {
@@ -68,7 +88,6 @@ function loadData() {
     players = [...INITIAL_PLAYERS];
   }
 
-  // Carrega partidas
   const storedMatches = localStorage.getItem(STORAGE_MATCHES_KEY);
   if (storedMatches) {
     try {
@@ -84,8 +103,6 @@ function loadData() {
   } else {
     initDefaultSchedule();
   }
-
-  saveData();
 }
 
 function initDefaultSchedule() {
@@ -101,19 +118,139 @@ function isExactOriginalFour(list) {
   return INITIAL_PLAYERS.every(p => list.includes(p));
 }
 
-function saveData() {
+function saveLocalBackup() {
   localStorage.setItem(STORAGE_PLAYERS_KEY, JSON.stringify(players));
   localStorage.setItem(STORAGE_MATCHES_KEY, JSON.stringify(matches));
 }
 
 /* ==========================================================================
-   Algoritmo Canônico Round-Robin (Todos Contra Todos Ida e Volta)
+   Sincronização em Tempo Real na Nuvem (Firebase Firestore)
+   ========================================================================== */
+function initFirebaseRealtime() {
+  updateSyncStatus('syncing', 'Conectando à nuvem...');
+
+  if (typeof firebase === 'undefined' || !firebase.initializeApp) {
+    console.warn('Firebase SDK não carregado. Operando em modo offline.');
+    updateSyncStatus('offline', 'Modo Offline (Local)');
+    return;
+  }
+
+  try {
+    if (!firebase.apps || !firebase.apps.length) {
+      firebase.initializeApp(FIREBASE_CONFIG);
+    }
+    db = firebase.firestore();
+    tournamentDocRef = db.collection('efootball').doc('torneio_principal');
+
+    // Escuta em tempo real (onSnapshot dispara instantaneamente para todos os dispositivos)
+    tournamentDocRef.onSnapshot((doc) => {
+      isCloudConnected = true;
+
+      if (doc.exists) {
+        const cloudData = doc.data();
+
+        let shouldReRender = false;
+
+        if (Array.isArray(cloudData.players) && cloudData.players.length >= 2) {
+          if (JSON.stringify(cloudData.players) !== JSON.stringify(players)) {
+            players = cloudData.players;
+            shouldReRender = true;
+          }
+        }
+
+        if (Array.isArray(cloudData.matches)) {
+          if (JSON.stringify(cloudData.matches) !== JSON.stringify(matches)) {
+            matches = cloudData.matches;
+            shouldReRender = true;
+          }
+        }
+
+        saveLocalBackup();
+
+        if (shouldReRender) {
+          // Se o usuário estiver focado em um input, apenas atualiza valores visuais
+          const activeInput = document.activeElement;
+          const isTyping = activeInput && activeInput.classList && activeInput.classList.contains('score-input');
+
+          if (!isTyping) {
+            renderApp();
+          } else {
+            refreshLeaderboard();
+          }
+        }
+
+        updateSyncStatus('online', 'Ao vivo • Tempo Real');
+      } else {
+        // Documento novo na nuvem: envia a tabela inicial com as 2 primeiras rodadas
+        syncToCloud(true);
+        updateSyncStatus('online', 'Ao vivo • Tempo Real');
+      }
+    }, (error) => {
+      console.error('Erro no listener realtime:', error);
+      isCloudConnected = false;
+      updateSyncStatus('offline', 'Offline (Reconectando...)');
+    });
+
+  } catch (err) {
+    console.error('Erro ao conectar ao Firebase:', err);
+    updateSyncStatus('offline', 'Offline (Salvo local)');
+  }
+}
+
+/**
+ * Envia alterações para a nuvem em tempo real (com debounce suave para digitação)
+ */
+function syncToCloud(immediate = false) {
+  saveLocalBackup();
+
+  if (!tournamentDocRef || !isCloudConnected) return;
+
+  if (cloudSyncTimeout) {
+    clearTimeout(cloudSyncTimeout);
+  }
+
+  const sendData = () => {
+    updateSyncStatus('syncing', 'Sincronizando...');
+    tournamentDocRef.set({
+      players: players,
+      matches: matches,
+      updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+    }, { merge: true })
+    .then(() => {
+      updateSyncStatus('online', 'Ao vivo • Tempo Real');
+    })
+    .catch((err) => {
+      console.error('Erro ao salvar no Firestore:', err);
+      updateSyncStatus('offline', 'Falha ao sincronizar');
+    });
+  };
+
+  if (immediate) {
+    sendData();
+  } else {
+    cloudSyncTimeout = setTimeout(sendData, 300);
+  }
+}
+
+function updateSyncStatus(status, text) {
+  const badge = document.getElementById('cloudSyncBadge');
+  const dot = badge ? badge.querySelector('.sync-dot') : null;
+  const label = document.getElementById('cloudSyncText');
+
+  if (badge && dot && label) {
+    badge.className = `cloud-sync-badge ${status}`;
+    dot.className = `sync-dot ${status}`;
+    label.textContent = text;
+  }
+}
+
+/* ==========================================================================
+   Algoritmo Canônico Round-Robin (Ida e Volta)
    ========================================================================== */
 function generateRoundRobinSchedule(playerList) {
   const n = playerList.length;
   if (n < 2) return [];
 
-  // Se a quantidade de jogadores for ímpar, adiciona dummy 'BYE' (Folga)
   const isOdd = n % 2 !== 0;
   const list = isOdd ? [...playerList, '__BYE__'] : [...playerList];
   const totalTeams = list.length;
@@ -123,7 +260,6 @@ function generateRoundRobinSchedule(playerList) {
   const firstLegRounds = [];
   let currentTeams = [...list];
 
-  // Gera o Turno (Ida) usando o método circular
   for (let round = 0; round < roundsInHalf; round++) {
     const roundMatches = [];
 
@@ -131,12 +267,10 @@ function generateRoundRobinSchedule(playerList) {
       const teamA = currentTeams[i];
       const teamB = currentTeams[totalTeams - 1 - i];
 
-      // Pula a folga se houver
       if (teamA === '__BYE__' || teamB === '__BYE__') {
         continue;
       }
 
-      // Alterna o mando do primeiro par para equilibrar jogos dentro e fora
       if (i === 0 && round % 2 === 1) {
         roundMatches.push({ home: teamB, away: teamA });
       } else {
@@ -146,7 +280,6 @@ function generateRoundRobinSchedule(playerList) {
 
     firstLegRounds.push(roundMatches);
 
-    // Gira todos os elementos exceto o primeiro (índice 0 fixo)
     const fixed = currentTeams[0];
     const rest = currentTeams.slice(1);
     const last = rest.pop();
@@ -154,7 +287,6 @@ function generateRoundRobinSchedule(playerList) {
     currentTeams = [fixed, ...rest];
   }
 
-  // Monta a lista completa com Turno e Returno
   const allMatches = [];
   let matchId = 1;
 
@@ -174,7 +306,7 @@ function generateRoundRobinSchedule(playerList) {
     });
   });
 
-  // Returno de Volta (Inverte mandos de campo)
+  // Returno de Volta (Mandos Invertidos)
   firstLegRounds.forEach((roundMatches, rIdx) => {
     const roundNum = roundsInHalf + rIdx + 1;
     roundMatches.forEach(m => {
@@ -182,8 +314,8 @@ function generateRoundRobinSchedule(playerList) {
         id: matchId++,
         round: roundNum,
         phase: 'returno',
-        home: m.away, // Invertido
-        away: m.home, // Invertido
+        home: m.away,
+        away: m.home,
         homeScore: null,
         awayScore: null
       });
@@ -311,7 +443,7 @@ function calculateHeadToHead(playerA, playerB) {
 }
 
 /* ==========================================================================
-   Renderização Geral da Aplicação
+   Renderização dos Componentes
    ========================================================================== */
 function renderApp() {
   updateHeaderInfo();
@@ -474,7 +606,6 @@ function renderMatches() {
 
   const halfRounds = Math.floor(totalRounds / 2);
 
-  // Atualiza texto dos botões de filtro de rodadas
   const roundTabs = document.getElementById('roundTabs');
   if (roundTabs) {
     const allBtn = roundTabs.querySelector('[data-filter="all"]');
@@ -639,9 +770,9 @@ function handleScoreDirectInput(e) {
     }
   }
 
-  saveData();
   updateMatchCardVisual(matchId);
   refreshLeaderboard();
+  syncToCloud(false); // Sincroniza na nuvem com debounce suave
 }
 
 function updateMatchCardVisual(matchId) {
@@ -739,9 +870,9 @@ window.adjustScore = function(matchId, team, delta) {
     match.awayScore = newScore;
   }
 
-  saveData();
   updateMatchCardVisual(matchId);
   refreshLeaderboard();
+  syncToCloud(true); // Sincronização imediata nos cliques
 };
 
 window.clearMatchScore = function(matchId) {
@@ -751,14 +882,14 @@ window.clearMatchScore = function(matchId) {
   match.homeScore = null;
   match.awayScore = null;
 
-  saveData();
   updateMatchCardVisual(matchId);
   refreshLeaderboard();
+  syncToCloud(true);
   showToast(`Placar do jogo ${match.home} x ${match.away} foi zerado.`, 'info');
 };
 
 /* ==========================================================================
-   Gerenciamento e Inscrição de Jogadores (Aba Dinâmica)
+   Gerenciamento e Inscrição de Jogadores
    ========================================================================== */
 function renderPlayersManager() {
   const grid = document.getElementById('playersListGrid');
@@ -776,13 +907,11 @@ function renderPlayersManager() {
 
   grid.innerHTML = '';
 
-  players.forEach((playerName, index) => {
+  players.forEach((playerName) => {
     const card = document.createElement('div');
     card.className = 'player-item-card';
 
     const initial = playerName.charAt(0).toUpperCase();
-
-    // Contagem de jogos agendados para este jogador
     const playerMatchesCount = matches.filter(m => m.home === playerName || m.away === playerName).length;
 
     card.innerHTML = `
@@ -807,29 +936,23 @@ function renderPlayersManager() {
   });
 }
 
-/**
- * Adiciona um novo jogador ao campeonato
- */
 function handleAddPlayer() {
   const input = document.getElementById('inputPlayerName');
   if (!input) return;
 
   const rawName = input.value.trim();
 
-  // Validação 1: Nome vazio
   if (!rawName) {
     showToast('Por favor, digite o nome do jogador para inscrever.', 'warning');
     input.focus();
     return;
   }
 
-  // Validação 2: Limite de caracteres
   if (rawName.length > 20) {
     showToast('O nome do jogador deve ter no máximo 20 caracteres.', 'warning');
     return;
   }
 
-  // Validação 3: Nome duplicado (case-insensitive)
   const isDuplicate = players.some(p => p.toLowerCase() === rawName.toLowerCase());
   if (isDuplicate) {
     showToast(`O jogador "${rawName}" já está inscrito no campeonato!`, 'warning');
@@ -837,19 +960,17 @@ function handleAddPlayer() {
     return;
   }
 
-  // Validação 4: Máximo de jogadores
   if (players.length >= 16) {
     showToast('Limite máximo de 16 participantes atingido!', 'warning');
     return;
   }
 
-  // Se já houver jogos disputados no torneio, solicita confirmação via Pop-up dedicado
   const playedCount = matches.filter(m => m.homeScore !== null && m.awayScore !== null).length;
 
   if (playedCount > 0) {
     openConfirmModal({
       title: 'Ajustar Campeonato com Novo Jogador?',
-      message: `O campeonato já tem ${playedCount} partidas com resultado registrado. Adicionar "${rawName}" irá gerar uma nova grade equilibrada de rodadas (ida e volta) e zerar a tabela. Deseja continuar?`,
+      message: `O campeonato já tem ${playedCount} partidas com resultado. Adicionar "${rawName}" irá gerar uma nova grade e atualizar em tempo real para todos. Deseja continuar?`,
       icon: '➕',
       confirmText: 'Sim, adicionar e ajustar',
       cancelText: 'Cancelar',
@@ -867,17 +988,13 @@ function handleAddPlayer() {
 function executeAddPlayer(playerName) {
   players.push(playerName);
   matches = generateRoundRobinSchedule(players);
-  saveData();
   hasCelebrated = false;
   renderApp();
-  showToast(`Jogador "${playerName}" inscrito! Grade de jogos recalculada automaticamente.`, 'success');
+  syncToCloud(true);
+  showToast(`Jogador "${playerName}" inscrito! Atualizado em tempo real para todos.`, 'success');
 }
 
-/**
- * Confirmação de remoção de jogador (Modal Dedicado, SEM confirm())
- */
 window.confirmRemovePlayer = function(playerName) {
-  // Mínimo de 3 jogadores
   if (players.length <= 3) {
     showToast('O campeonato precisa de no mínimo 3 jogadores inscritos.', 'warning');
     return;
@@ -885,24 +1002,23 @@ window.confirmRemovePlayer = function(playerName) {
 
   openConfirmModal({
     title: `Remover ${playerName}?`,
-    message: `Tem certeza de que deseja remover "${playerName}" do campeonato? A grade de confrontos e a tabela serão recalculadas automaticamente.`,
+    message: `Tem certeza de que deseja remover "${playerName}" do campeonato? A grade de confrontos e a tabela serão recalculadas para todos em tempo real.`,
     icon: '⚠️',
     confirmText: 'Sim, remover',
     cancelText: 'Cancelar',
     onConfirm: () => {
       players = players.filter(p => p !== playerName);
 
-      // Se voltar a ser exatamente os 4 originais, usa o calendário oficial
       if (isExactOriginalFour(players)) {
         matches = JSON.parse(JSON.stringify(DEFAULT_MATCHES_4));
       } else {
         matches = generateRoundRobinSchedule(players);
       }
 
-      saveData();
       hasCelebrated = false;
       renderApp();
-      showToast(`Jogador "${playerName}" removido. Campeonato reajustado!`, 'info');
+      syncToCloud(true);
+      showToast(`Jogador "${playerName}" removido. Campeonato reajustado em tempo real!`, 'info');
     }
   });
 };
@@ -1130,7 +1246,6 @@ function showToast(message, type = 'info', duration = 3500) {
    Configuração de Eventos
    ========================================================================== */
 function setupEventListeners() {
-  // Navegação entre abas principais
   const tabTournament = document.getElementById('navTabTournament');
   const tabPlayers = document.getElementById('navTabPlayers');
   const viewTournament = document.getElementById('viewTournament');
@@ -1154,7 +1269,6 @@ function setupEventListeners() {
     });
   }
 
-  // Formulário de Adicionar Jogador
   const btnAdd = document.getElementById('btnAddPlayer');
   const inputPlayer = document.getElementById('inputPlayerName');
 
@@ -1171,13 +1285,12 @@ function setupEventListeners() {
     });
   }
 
-  // Botão de Zerar Torneio
   const btnReset = document.getElementById('btnResetTournament');
   if (btnReset) {
     btnReset.addEventListener('click', () => {
       openConfirmModal({
         title: 'Zerar todo o Campeonato?',
-        message: 'Todos os placares preenchidos e a classificação serão redefinidos para o início. Deseja continuar?',
+        message: 'Todos os placares preenchidos e a classificação serão redefinidos para o início em tempo real para todos os jogadores. Deseja continuar?',
         icon: '⚠️',
         confirmText: 'Sim, zerar tudo',
         cancelText: 'Cancelar',
@@ -1187,22 +1300,20 @@ function setupEventListeners() {
           } else {
             matches = generateRoundRobinSchedule(players);
           }
-          saveData();
           hasCelebrated = false;
           renderApp();
-          showToast('Campeonato zerado com sucesso!', 'success');
+          syncToCloud(true);
+          showToast('Campeonato zerado com sucesso para todos!', 'success');
         }
       });
     });
   }
 
-  // Botão de Copiar para WhatsApp
   const btnShare = document.getElementById('btnShareWhatsApp');
   if (btnShare) {
     btnShare.addEventListener('click', copyStandingsForWhatsApp);
   }
 
-  // Botão de Soltar Confetes
   const btnCelebration = document.getElementById('btnCelebration');
   if (btnCelebration) {
     btnCelebration.addEventListener('click', () => {
@@ -1211,7 +1322,6 @@ function setupEventListeners() {
     });
   }
 
-  // Filtro de Rodadas (Todas / Turno / Returno)
   const tabs = document.querySelectorAll('.tab-btn');
   tabs.forEach(tab => {
     tab.addEventListener('click', (e) => {

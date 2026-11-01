@@ -1,18 +1,28 @@
-# ⚽ Tabela eFootball League - Sistema Dinâmico de Campeonato
+# ⚽ Tabela eFootball League - Tempo Real na Nuvem
 
-Sistema web completo para gerenciar campeonatos de pontos corridos entre amigos no eFootball, com suporte a **inscrição dinâmica de jogadores**, **geração automática de rodadas (Turno e Returno / Ida e Volta)**, pontuação oficial e atualização em tempo real.
+Sistema web completo para gerenciar campeonatos de pontos corridos entre amigos no eFootball, com **sincronização em tempo real (Realtime)** via Google Firebase Firestore, **inscrição dinâmica de jogadores**, **geração automática de rodadas (Ida e Volta)** e layout responsivo ultra-amplo.
+
+---
+
+## ⚡ Sincronização em Tempo Real (Multi-usuário)
+- Conectado diretamente ao **Google Firebase Firestore**.
+- Qualquer placar preenchido ou jogador adicionado é sincronizado **instantaneamente** na tela de todos os amigos conectados (celular ou computador).
+- Indicador visual no topo do site:
+  - 🟢 **Ao vivo • Tempo Real**: Conexão ativa com a nuvem.
+  - 🔄 **Sincronizando...**: Salvando alterações.
+  - 🔴 **Offline**: Modo local caso a internet caia (com sincronização automática ao restabelecer).
 
 ---
 
 ## 👥 Jogadores e Formato do Torneio
-- **Jogadores Iniciais:** **Sidney**, **Miguel**, **Gabriel** e **Pedro**
+- **Participantes Iniciais:** **Sidney**, **Miguel**, **Gabriel** e **Pedro**
 - **Inscrição de Novos Jogadores:** Aba dedicada para cadastrar novos amigos ou remover participantes.
-- **Ajuste Automático:** O sistema recalcula automaticamente a grade de jogos com turno (ida) e returno (volta) para que todos joguem contra todos com mandos de campo balanceados.
+- **Ajuste Automático:** O sistema recalcula a grade de jogos com turno (ida) e returno (volta) de forma equilibrada.
 - **Sistema de Pontuação Oficial:**
   - 🥇 **Vitória:** 3 pontos
   - 🤝 **Empate:** 1 ponto para cada jogador
   - ❌ **Derrota:** 0 pontos
-- **Campeão:** O 1º colocado ao final de todas as rodadas (ou com garantia matemática antecipada) recebe o banner dourado com animação de confetes! 🎉
+- **Campeão:** O 1º colocado ao final de todas as rodadas recebe o banner dourado com animação de confetes! 🎉
 
 ### 📊 Critérios de Desempate
 1. Maior número de pontos (**PTS**)
@@ -24,27 +34,8 @@ Sistema web completo para gerenciar campeonatos de pontos corridos entre amigos 
 
 ---
 
-## 🎮 Funcionalidades Principais
-
-### 1. Aba "Tabela & Jogos"
-- **Classificação Completa em Tempo Real:** Posição, Jogador, Pontos (PTS), Jogos (J), Vitórias (V), Empates (E), Derrotas (D), Gols Pró (GP), Gols Sofridos (GC), Saldo (SG), Aproveitamento (%) e Forma Recente (V, E, D).
-- **Cards de Partidas com Controles Rápidos:** Botões de `+` e `−` para toque rápido no celular ou digitação numérica direta.
-- **Filtro de Rodadas:** Alterne facilmente entre *Todas as Rodadas*, *Turno (Ida)* e *Returno (Volta)*.
-- **Estatísticas Rápidas:** Total de gols, média de gols por jogo, melhor ataque e melhor defesa.
-- **Copiar para WhatsApp:** Botão que formata a classificação com emojis e medalhas pronta para colar no grupo.
-
-### 2. Aba "Inscrever Jogadores"
-- **Adicionar Jogador:** Digite o nome do amigo e adicione ao campeonato. O sistema avisa se houver jogos em andamento antes de recalcular.
-- **Remover Jogador:** Remova participantes com confirmação visual em pop-up dedicado (mantendo o mínimo de 3 participantes).
-- **Resumo Dinâmico:** Mostra em tempo real a quantidade de jogadores inscritos, total de rodadas e total de partidas geradas.
-
-### 3. Pop-ups e Notificações Dedicados
-- Interface 100% customizada sem usar `alert()` ou `confirm()`. Modais modernos com backdrop blur e sistema de toasts flutuantes.
-
-### 4. Salvamento Automático
-- Todos os dados ficam salvos automaticamente no `localStorage` do navegador.
-
----
-
-## 🚀 Como Executar
-Basta dar um duplo clique no arquivo `index.html` ou abri-lo em qualquer navegador web.
+## 🎮 Interface e Visual
+- **Layout Expandido (1480px):** Espaço amplo para acomodar os nomes dos jogadores sem cortes nas partidas.
+- **Cards de Confrontos Otimizados:** Espaçamento generoso entre os times, placares claros e botões rápidos de `+` e `−`.
+- **Pop-ups Dedicados:** Modais modernos de confirmação e toasts flutuantes (sem utilizar `alert()` ou `confirm()`).
+- **Exportação para WhatsApp:** Cópia formatada da classificação com medalhas e emojis pronta para colar no grupo.
