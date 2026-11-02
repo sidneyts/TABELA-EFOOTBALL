@@ -66,6 +66,8 @@ let lastCompetitionTab = 'tournament'; // 'tournament' ou 'knockout'
 let hasCelebrated = false;
 let hasCelebratedKnockout = false;
 let pendingSaveMode = 'league'; // 'league' ou 'knockout'
+let preRemovalMatchesBackup = null;
+let preRemovalPlayersBackup = null;
 
 // Contador de Curtidas com Limite de 1 clique/segundo
 let totalLikes = 0;
@@ -1325,7 +1327,23 @@ function handleAddPlayer() {
 }
 
 function executeAddPlayer(playerName) {
-  players.push(playerName);
+  // Se for uma restauração do jogador recém-removido, recupera as partidas e placares originais!
+  if (preRemovalMatchesBackup && preRemovalPlayersBackup && preRemovalPlayersBackup.includes(playerName) && preRemovalPlayersBackup.length === players.length + 1) {
+    players = [...preRemovalPlayersBackup];
+    matches = JSON.parse(JSON.stringify(preRemovalMatchesBackup));
+    preRemovalMatchesBackup = null;
+    preRemovalPlayersBackup = null;
+  } else {
+    if (!players.includes(playerName)) {
+      players.push(playerName);
+    }
+    if (isExactOriginalFour(players)) {
+      matches = JSON.parse(JSON.stringify(DEFAULT_MATCHES_4));
+    } else {
+      matches = generateRoundRobinSchedule(players);
+    }
+  }
+
   if (pendingNewPlayerPhoto) {
     playerPhotos[playerName] = pendingNewPlayerPhoto;
     pendingNewPlayerPhoto = null;
@@ -1337,7 +1355,7 @@ function executeAddPlayer(playerName) {
       placeholder.classList.remove('hidden');
     }
   }
-  matches = generateRoundRobinSchedule(players);
+
   hasCelebrated = false;
   renderApp();
   syncToCloud(true);
@@ -1350,13 +1368,23 @@ window.confirmRemovePlayer = function(playerName) {
     return;
   }
 
+  const playedCount = matches.filter(m => m.homeScore !== null && m.awayScore !== null).length;
+  let message = `Tem certeza de que deseja remover "${playerName}" desta competição atual? A grade de confrontos e a tabela serão recalculadas para os jogadores restantes.`;
+  if (playedCount > 0) {
+    message = `Atenção: A competição atual possui ${playedCount} partidas com resultado registrado. Ao remover "${playerName}", os confrontos deste campeonato em andamento serão reorganizados para os participantes restantes. O histórico de edições passadas na Sala de Troféus permanecerá 100% preservado. (Dica: se mudar de ideia, você pode adicioná-lo de volta pelo botão "+" a qualquer momento).`;
+  }
+
   openConfirmModal({
     title: `Remover ${playerName}?`,
-    message: `Tem certeza de que deseja remover "${playerName}" do campeonato? A grade de confrontos e a tabela serão recalculadas para todos em tempo real.`,
+    message: message,
     icon: '⚠️',
     confirmText: 'Sim, remover',
     cancelText: 'Cancelar',
     onConfirm: () => {
+      // Guarda backup caso o usuário queira desfazer ou restaurar adicionando de volta
+      preRemovalMatchesBackup = JSON.parse(JSON.stringify(matches));
+      preRemovalPlayersBackup = [...players];
+
       players = players.filter(p => p !== playerName);
 
       if (isExactOriginalFour(players)) {
@@ -1368,7 +1396,7 @@ window.confirmRemovePlayer = function(playerName) {
       hasCelebrated = false;
       renderApp();
       syncToCloud(true);
-      showToast(`Jogador "${playerName}" removido. Campeonato reajustado em tempo real!`, 'info');
+      showToast(`Jogador "${playerName}" removido da competição atual!`, 'info');
     }
   });
 };
@@ -2764,9 +2792,33 @@ function renderHistoryView() {
 
   if (!hallGrid || !listContainer) return;
 
-  // Calcula contagem de títulos para cada jogador
+  // Calcula contagem de títulos para cada jogador garantindo que NENHUM jogador histórico suma
+  const allKnownHistoricalPlayers = new Set(players);
+  INITIAL_PLAYERS.forEach(p => allKnownHistoricalPlayers.add(p));
+  if (playerPhotos && typeof playerPhotos === 'object') {
+    Object.keys(playerPhotos).forEach(name => {
+      if (name && !name.startsWith('__')) allKnownHistoricalPlayers.add(name);
+    });
+  }
+  tournamentHistory.forEach(h => {
+    if (h.champion && h.champion !== '-' && !h.champion.startsWith('BYE')) allKnownHistoricalPlayers.add(h.champion);
+    if (h.runnerUp && h.runnerUp !== '-' && !h.runnerUp.startsWith('BYE')) allKnownHistoricalPlayers.add(h.runnerUp);
+    if (h.thirdPlace && h.thirdPlace !== '-' && !h.thirdPlace.startsWith('BYE')) allKnownHistoricalPlayers.add(h.thirdPlace);
+    if (Array.isArray(h.standingsSnapshot)) {
+      h.standingsSnapshot.forEach(p => {
+        if (p.name && !p.name.startsWith('BYE')) allKnownHistoricalPlayers.add(p.name);
+      });
+    }
+    if (Array.isArray(h.matchesSnapshot)) {
+      h.matchesSnapshot.forEach(m => {
+        if (m.home && !m.home.startsWith('BYE')) allKnownHistoricalPlayers.add(m.home);
+        if (m.away && !m.away.startsWith('BYE')) allKnownHistoricalPlayers.add(m.away);
+      });
+    }
+  });
+
   const trophyMap = {};
-  players.forEach(p => {
+  allKnownHistoricalPlayers.forEach(p => {
     trophyMap[p] = { name: p, titles: 0, vices: 0 };
   });
 
@@ -3207,6 +3259,9 @@ function closePlayerContextMenu() {
 
 function getUnenrolledPlayers() {
   const allKnown = new Set(INITIAL_PLAYERS);
+  if (preRemovalPlayersBackup && Array.isArray(preRemovalPlayersBackup)) {
+    preRemovalPlayersBackup.forEach(p => allKnown.add(p));
+  }
   // Adiciona do cache de fotos
   if (playerPhotos && typeof playerPhotos === 'object') {
     Object.keys(playerPhotos).forEach(name => {
@@ -3222,6 +3277,12 @@ function getUnenrolledPlayers() {
       if (Array.isArray(h.standingsSnapshot)) {
         h.standingsSnapshot.forEach(p => {
           if (p.name && !p.name.startsWith('BYE')) allKnown.add(p.name);
+        });
+      }
+      if (Array.isArray(h.matchesSnapshot)) {
+        h.matchesSnapshot.forEach(m => {
+          if (m.home && !m.home.startsWith('BYE')) allKnown.add(m.home);
+          if (m.away && !m.away.startsWith('BYE')) allKnown.add(m.away);
         });
       }
     });
@@ -3280,6 +3341,14 @@ window.quickEnrollPlayer = function(playerName) {
   if (players.includes(playerName)) {
     showToast(`"${playerName}" já está no campeonato.`, 'info');
     closeQuickAddPlayerModal();
+    return;
+  }
+
+  // Se for restauração de jogador recém-removido, recupera os jogos e placares de volta imediatamente
+  if (preRemovalMatchesBackup && preRemovalPlayersBackup && preRemovalPlayersBackup.includes(playerName)) {
+    executeAddPlayer(playerName);
+    closeQuickAddPlayerModal();
+    showToast(`Partidas e placares de "${playerName}" restaurados com sucesso!`, 'success');
     return;
   }
 
