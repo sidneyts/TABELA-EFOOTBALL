@@ -27,14 +27,14 @@ const STORAGE_LIKES_KEY = 'efootball_likes_count_v1';
 // Lista de jogadores inicial
 const INITIAL_PLAYERS = ['Sidney', 'Miguel', 'Gabriel', 'Pedro'];
 
-// Jogos reais das rodadas 1 e 2
+// Jogos padrão (todas as partidas zeradas prontas para novo campeonato)
 const DEFAULT_MATCHES_4 = [
   // TURNO (Ida)
-  { id: 1, round: 1, phase: 'turno', home: 'Miguel', away: 'Pedro', homeScore: 1, awayScore: 2 },
-  { id: 2, round: 1, phase: 'turno', home: 'Gabriel', away: 'Sidney', homeScore: 0, awayScore: 4 },
+  { id: 1, round: 1, phase: 'turno', home: 'Miguel', away: 'Pedro', homeScore: null, awayScore: null },
+  { id: 2, round: 1, phase: 'turno', home: 'Gabriel', away: 'Sidney', homeScore: null, awayScore: null },
 
-  { id: 3, round: 2, phase: 'turno', home: 'Gabriel', away: 'Pedro', homeScore: 0, awayScore: 0 },
-  { id: 4, round: 2, phase: 'turno', home: 'Miguel', away: 'Sidney', homeScore: 2, awayScore: 2 },
+  { id: 3, round: 2, phase: 'turno', home: 'Gabriel', away: 'Pedro', homeScore: null, awayScore: null },
+  { id: 4, round: 2, phase: 'turno', home: 'Miguel', away: 'Sidney', homeScore: null, awayScore: null },
 
   { id: 5, round: 3, phase: 'turno', home: 'Sidney', away: 'Pedro', homeScore: null, awayScore: null },
   { id: 6, round: 3, phase: 'turno', home: 'Miguel', away: 'Gabriel', homeScore: null, awayScore: null },
@@ -1140,8 +1140,7 @@ window.clearMatchScore = function(matchId) {
   match.homeScore = null;
   match.awayScore = null;
 
-  updateMatchCardVisual(matchId);
-  refreshLeaderboard();
+  renderApp();
   syncToCloud(true);
   showToast(`Placar do jogo ${match.home} x ${match.away} foi zerado.`, 'info');
 };
@@ -3592,15 +3591,16 @@ function setupEventListeners() {
         confirmText: 'Sim, zerar tudo',
         cancelText: 'Cancelar',
         onConfirm: () => {
-          if (isExactOriginalFour(players)) {
-            matches = JSON.parse(JSON.stringify(DEFAULT_MATCHES_4));
-          } else {
-            matches = generateRoundRobinSchedule(players);
-          }
+          matches.forEach(m => {
+            m.homeScore = null;
+            m.awayScore = null;
+          });
+          preRemovalMatchesBackup = null;
+          preRemovalPlayersBackup = null;
           hasCelebrated = false;
           renderApp();
           syncToCloud(true);
-          showToast('Campeonato zerado com sucesso para todos!', 'success');
+          showToast('Campeonato e todos os placares zerados com sucesso!', 'success');
         }
       });
     });
