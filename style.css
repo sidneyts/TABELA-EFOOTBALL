@@ -1456,13 +1456,13 @@ body {
   background: rgba(255, 51, 102, 0.12);
   border: 1px solid rgba(255, 51, 102, 0.3);
   color: #ff6b8b;
-  width: 36px;
-  height: 36px;
+  width: 34px;
+  height: 34px;
   border-radius: var(--radius-sm);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 1.05rem;
+  font-size: 1rem;
   cursor: pointer;
   transition: all 0.2s;
   flex-shrink: 0;
@@ -1473,6 +1473,67 @@ body {
   border-color: rgba(255, 51, 102, 0.6);
   color: #ffffff;
   transform: scale(1.06);
+}
+
+.btn-pause-player {
+  background: rgba(245, 158, 11, 0.14);
+  border: 1px solid rgba(245, 158, 11, 0.4);
+  color: #fbbf24;
+  height: 34px;
+  padding: 0 10px;
+  border-radius: var(--radius-sm);
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-family: var(--font-body);
+  font-size: 0.76rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s;
+  flex-shrink: 0;
+}
+
+.btn-pause-player:hover {
+  background: rgba(245, 158, 11, 0.28);
+  border-color: #f59e0b;
+  color: #ffffff;
+  transform: translateY(-1px);
+}
+
+.btn-enroll-player {
+  background: linear-gradient(135deg, rgba(0, 240, 255, 0.2), rgba(37, 99, 235, 0.3));
+  border: 1px solid var(--accent-cyan);
+  color: #38bdf8;
+  height: 34px;
+  padding: 0 12px;
+  border-radius: var(--radius-sm);
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-family: var(--font-body);
+  font-size: 0.78rem;
+  font-weight: 800;
+  cursor: pointer;
+  transition: all 0.2s;
+  box-shadow: 0 0 10px rgba(0, 240, 255, 0.2);
+  flex-shrink: 0;
+}
+
+.btn-enroll-player:hover {
+  background: linear-gradient(135deg, #00d2ff, #0077ff);
+  color: #ffffff;
+  box-shadow: 0 0 16px rgba(0, 240, 255, 0.4);
+  transform: translateY(-1px);
+}
+
+.available-player-card {
+  border-style: dashed;
+  background: rgba(14, 22, 42, 0.6);
+  opacity: 0.94;
+}
+
+.available-player-card:hover {
+  opacity: 1;
 }
 
 /* ========================================================= */
@@ -3640,6 +3701,15 @@ body {
 .context-menu-item.item-danger:hover {
   background: rgba(255, 77, 109, 0.18);
   color: #ff3355;
+}
+
+.context-menu-item.item-warning {
+  color: #fbbf24;
+}
+
+.context-menu-item.item-warning:hover {
+  background: rgba(251, 191, 36, 0.16);
+  color: #fde047;
 }
 
 .team-box[data-player-name],

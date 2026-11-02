@@ -396,13 +396,34 @@
           </form>
         </div>
 
-        <!-- Lista de Jogadores Inscritos -->
+        <!-- Lista de Jogadores Inscritos no Campeonato Ativo -->
         <div class="enrolled-players-section">
           <div class="enrolled-header">
-            <h3 class="section-minor-title">Jogadores Atuais no Campeonato</h3>
+            <div>
+              <h3 class="section-minor-title">🏆 Jogadores no Campeonato Atual</h3>
+              <p class="section-minor-desc" style="font-size: 0.8rem; color: var(--text-muted); margin-top: 2px;">
+                Participantes disputando a Tabela de Pontos Corridos e o chaveamento do Mata-Mata
+              </p>
+            </div>
             <span class="enrolled-note">Mínimo de 3 jogadores</span>
           </div>
           <div id="playersListGrid" class="players-list-grid">
+            <!-- Renderizado dinamicamente via JS -->
+          </div>
+        </div>
+
+        <!-- Lista de Jogadores Cadastrados no Sistema (Fora do Campeonato) -->
+        <div id="availablePlayersSection" class="enrolled-players-section available-players-section" style="margin-top: 28px;">
+          <div class="enrolled-header">
+            <div>
+              <h3 class="section-minor-title">👥 Banco de Jogadores Cadastrados (Fora do Campeonato)</h3>
+              <p class="section-minor-desc" style="font-size: 0.8rem; color: var(--text-muted); margin-top: 2px;">
+                Jogadores salvos no sistema com foto. Remova do campeonato ou inscreva de volta com 1 clique quando quiser!
+              </p>
+            </div>
+            <span id="availablePlayersBadge" class="enrolled-note">0 disponíveis</span>
+          </div>
+          <div id="availablePlayersGrid" class="players-list-grid">
             <!-- Renderizado dinamicamente via JS -->
           </div>
         </div>
@@ -715,9 +736,13 @@
       </div>
     </div>
     <div class="context-menu-divider"></div>
-    <button type="button" class="context-menu-item item-danger" id="contextMenuBtnRemovePlayer">
+    <button type="button" class="context-menu-item item-warning" id="contextMenuBtnPausePlayer">
+      <span class="context-item-icon">⛔</span>
+      <span class="context-item-text">Tirar do campeonato atual</span>
+    </button>
+    <button type="button" class="context-menu-item item-danger" id="contextMenuBtnDeletePermanent">
       <span class="context-item-icon">🗑️</span>
-      <span class="context-item-text">Remover da competição</span>
+      <span class="context-item-text">Excluir de vez do sistema</span>
     </button>
     <button type="button" class="context-menu-item" id="contextMenuBtnIdentify">
       <span class="context-item-icon">👤</span>

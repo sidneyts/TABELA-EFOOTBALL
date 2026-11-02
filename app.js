@@ -23,6 +23,7 @@ const STORAGE_KNOCKOUT_KEY = 'efootball_knockout_v1';
 const STORAGE_PHOTOS_KEY = 'efootball_player_photos_v1';
 const STORAGE_ACTIVE_TAB_KEY = 'efootball_active_tab_v1';
 const STORAGE_LIKES_KEY = 'efootball_likes_count_v1';
+const STORAGE_REGISTERED_PLAYERS_KEY = 'efootball_registered_players_v1';
 
 // Lista de jogadores inicial
 const INITIAL_PLAYERS = ['Sidney', 'Miguel', 'Gabriel', 'Pedro'];
@@ -52,6 +53,7 @@ const DEFAULT_MATCHES_4 = [
 
 // Estado global da aplicação
 let players = [];
+let registeredPlayers = [];
 let matches = [];
 let tournamentHistory = [];
 let playerPhotos = {}; // { [playerName]: base64DataUrl }
@@ -191,6 +193,46 @@ function loadLocalBackup() {
       totalLikes = parsedLikes;
     }
   }
+
+  const storedReg = localStorage.getItem(STORAGE_REGISTERED_PLAYERS_KEY);
+  if (storedReg) {
+    try {
+      const parsedReg = JSON.parse(storedReg);
+      if (Array.isArray(parsedReg)) {
+        registeredPlayers = parsedReg;
+      }
+    } catch (e) {
+      registeredPlayers = [];
+    }
+  }
+
+  ensureRegisteredPlayersConsistency();
+}
+
+function ensureRegisteredPlayersConsistency() {
+  const set = new Set(registeredPlayers || []);
+  INITIAL_PLAYERS.forEach(p => set.add(p));
+  players.forEach(p => set.add(p));
+
+  if (playerPhotos && typeof playerPhotos === 'object') {
+    Object.keys(playerPhotos).forEach(name => {
+      if (name && !name.startsWith('__')) set.add(name);
+    });
+  }
+
+  if (Array.isArray(tournamentHistory)) {
+    tournamentHistory.forEach(h => {
+      if (h.champion && h.champion !== '-' && !h.champion.startsWith('BYE')) set.add(h.champion);
+      if (h.runnerUp && h.runnerUp !== '-' && !h.runnerUp.startsWith('BYE')) set.add(h.runnerUp);
+      if (Array.isArray(h.standingsSnapshot)) {
+        h.standingsSnapshot.forEach(p => {
+          if (p.name && !p.name.startsWith('BYE')) set.add(p.name);
+        });
+      }
+    });
+  }
+
+  registeredPlayers = Array.from(set);
 }
 
 function normalizeKnockoutState(ko) {
@@ -235,6 +277,7 @@ function isExactOriginalFour(list) {
 
 function saveLocalBackup() {
   localStorage.setItem(STORAGE_PLAYERS_KEY, JSON.stringify(players));
+  localStorage.setItem(STORAGE_REGISTERED_PLAYERS_KEY, JSON.stringify(registeredPlayers));
   localStorage.setItem(STORAGE_MATCHES_KEY, JSON.stringify(matches));
   localStorage.setItem(STORAGE_HISTORY_KEY, JSON.stringify(tournamentHistory));
   localStorage.setItem(STORAGE_KNOCKOUT_KEY, JSON.stringify(knockoutState));
@@ -276,6 +319,14 @@ function initFirebaseRealtime() {
             shouldReRender = true;
           }
         }
+
+        if (Array.isArray(cloudData.registeredPlayers)) {
+          if (JSON.stringify(cloudData.registeredPlayers) !== JSON.stringify(registeredPlayers)) {
+            registeredPlayers = cloudData.registeredPlayers;
+            shouldReRender = true;
+          }
+        }
+        ensureRegisteredPlayersConsistency();
 
         if (Array.isArray(cloudData.matches)) {
           if (JSON.stringify(cloudData.matches) !== JSON.stringify(matches)) {
@@ -367,6 +418,7 @@ function syncToCloud(immediate = false) {
     updateSyncStatus('syncing', 'Sincronizando...');
     const payload = {
       players: players,
+      registeredPlayers: registeredPlayers,
       matches: matches,
       history: tournamentHistory,
       knockout: knockoutState,
@@ -1151,13 +1203,17 @@ window.clearMatchScore = function(matchId) {
 };
 
 /* ==========================================================================
-   Gerenciamento e Inscrição de Jogadores
+   Gerenciamento e Inscrição de Jogadores (Campeonato vs Banco do Sistema)
    ========================================================================== */
 function renderPlayersManager() {
   const grid = document.getElementById('playersListGrid');
+  const availableGrid = document.getElementById('availablePlayersGrid');
+  const availableBadge = document.getElementById('availablePlayersBadge');
   const summaryCount = document.getElementById('summaryPlayersCount');
   const summaryRounds = document.getElementById('summaryRoundsCount');
   const summaryMatches = document.getElementById('summaryMatchesCount');
+
+  ensureRegisteredPlayersConsistency();
 
   const totalRounds = calculateTotalRounds();
 
@@ -1165,50 +1221,131 @@ function renderPlayersManager() {
   if (summaryRounds) summaryRounds.textContent = totalRounds;
   if (summaryMatches) summaryMatches.textContent = matches.length;
 
-  if (!grid) return;
+  // 1. Renderiza Jogadores Inscritos no Campeonato Ativo
+  if (grid) {
+    grid.innerHTML = '';
 
-  grid.innerHTML = '';
+    players.forEach((playerName) => {
+      const card = document.createElement('div');
+      card.className = 'player-item-card';
 
-  players.forEach((playerName) => {
-    const card = document.createElement('div');
-    card.className = 'player-item-card';
+      const avatarInner = getPlayerAvatarInnerHtml(playerName);
+      const hasPhoto = Boolean(getPlayerPhotoUrl(playerName));
+      const playerMatchesCount = matches.filter(m => m.home === playerName || m.away === playerName).length;
 
-    const avatarInner = getPlayerAvatarInnerHtml(playerName);
-    const hasPhoto = Boolean(getPlayerPhotoUrl(playerName));
-    const playerMatchesCount = matches.filter(m => m.home === playerName || m.away === playerName).length;
-
-    card.innerHTML = `
-      <div class="player-card-left">
-        <div class="player-card-avatar" onclick="triggerPlayerPhotoUpload('${playerName}')" title="Clique para anexar ou trocar a foto de ${playerName}">
-          ${avatarInner}
+      card.innerHTML = `
+        <div class="player-card-left">
+          <div class="player-card-avatar" onclick="triggerPlayerPhotoUpload('${playerName}')" title="Clique para anexar ou trocar a foto de ${playerName}">
+            ${avatarInner}
+          </div>
+          <div class="player-card-info">
+            <span class="player-card-name" title="${playerName}">${playerName}</span>
+            <span class="player-card-sub">${playerMatchesCount} jogos no torneio • ${hasPhoto ? '📸 Com foto' : 'Sem foto'}</span>
+          </div>
         </div>
-        <div class="player-card-info">
-          <span class="player-card-name" title="${playerName}">${playerName}</span>
-          <span class="player-card-sub">${playerMatchesCount} jogos • ${hasPhoto ? '📸 Foto anexada' : 'Sem foto'}</span>
+        <div class="player-card-actions">
+          <button
+            type="button"
+            class="btn-photo-player"
+            onclick="triggerPlayerPhotoUpload('${playerName}')"
+            title="Anexar ou trocar foto de ${playerName}"
+          >
+            📷 ${hasPhoto ? 'Trocar' : 'Foto'}
+          </button>
+          <button 
+            type="button" 
+            class="btn-pause-player" 
+            onclick="removePlayerFromCompetition('${playerName}')" 
+            title="Remover apenas do campeonato atual (permanece salvo na lista geral de jogadores)"
+          >
+            ⛔ Tirar do Camp.
+          </button>
+          <button 
+            type="button" 
+            class="btn-remove-player" 
+            onclick="confirmDeletePlayerPermanently('${playerName}')" 
+            title="Excluir de vez do sistema (apaga cadastro e foto)"
+          >
+            🗑️
+          </button>
         </div>
-      </div>
-      <div class="player-card-actions">
-        <button
-          type="button"
-          class="btn-photo-player"
-          onclick="triggerPlayerPhotoUpload('${playerName}')"
-          title="Anexar ou trocar foto de ${playerName}"
-        >
-          📷 ${hasPhoto ? 'Trocar' : 'Foto'}
-        </button>
-        <button 
-          type="button" 
-          class="btn-remove-player" 
-          onclick="confirmRemovePlayer('${playerName}')" 
-          title="Excluir oficialmente ${playerName} do sistema"
-        >
-          🗑️
-        </button>
-      </div>
-    `;
+      `;
 
-    grid.appendChild(card);
-  });
+      grid.appendChild(card);
+    });
+  }
+
+  // 2. Renderiza Banco de Jogadores Cadastrados (Fora do Campeonato Atual)
+  if (availableGrid) {
+    availableGrid.innerHTML = '';
+    const availablePlayers = registeredPlayers.filter(p => !players.includes(p));
+
+    if (availableBadge) {
+      availableBadge.textContent = `${availablePlayers.length} ${availablePlayers.length === 1 ? 'disponível' : 'disponíveis'}`;
+    }
+
+    if (availablePlayers.length === 0) {
+      availableGrid.innerHTML = `
+        <div class="knockout-empty-state" style="padding: 24px 16px; margin: 0; background: rgba(10, 16, 30, 0.4);">
+          <div style="font-size: 1.6rem; margin-bottom: 6px;">👥</div>
+          <div style="font-weight: 700; color: var(--text-muted); font-size: 0.9rem;">
+            Todos os jogadores cadastrados estão participando do campeonato atual.
+          </div>
+          <small style="color: var(--text-subtle); display: block; margin-top: 4px;">
+            Quando você tirar um jogador do campeonato, ele ficará disponível aqui com sua foto para voltar quando quiser!
+          </small>
+        </div>
+      `;
+    } else {
+      availablePlayers.forEach((playerName) => {
+        const card = document.createElement('div');
+        card.className = 'player-item-card available-player-card';
+
+        const avatarInner = getPlayerAvatarInnerHtml(playerName);
+        const hasPhoto = Boolean(getPlayerPhotoUrl(playerName));
+
+        card.innerHTML = `
+          <div class="player-card-left">
+            <div class="player-card-avatar" onclick="triggerPlayerPhotoUpload('${playerName}')" title="Clique para trocar foto de ${playerName}">
+              ${avatarInner}
+            </div>
+            <div class="player-card-info">
+              <span class="player-card-name" title="${playerName}">${playerName}</span>
+              <span class="player-card-sub" style="color: #38bdf8;">⚡ No banco • Salvo no sistema</span>
+            </div>
+          </div>
+          <div class="player-card-actions">
+            <button
+              type="button"
+              class="btn-enroll-player"
+              onclick="enrollRegisteredPlayer('${playerName}')"
+              title="Inscrever ${playerName} no campeonato ativo agora"
+            >
+              ➕ Inscrever
+            </button>
+            <button
+              type="button"
+              class="btn-photo-player"
+              onclick="triggerPlayerPhotoUpload('${playerName}')"
+              title="Anexar ou trocar foto de ${playerName}"
+            >
+              📷 ${hasPhoto ? 'Trocar' : 'Foto'}
+            </button>
+            <button 
+              type="button" 
+              class="btn-remove-player" 
+              onclick="confirmDeletePlayerPermanently('${playerName}')" 
+              title="Excluir de vez do sistema (apaga cadastro e foto)"
+            >
+              🗑️
+            </button>
+          </div>
+        `;
+
+        availableGrid.appendChild(card);
+      });
+    }
+  }
 }
 
 window.triggerPlayerPhotoUpload = function(playerName) {
@@ -1298,10 +1435,18 @@ function handleAddPlayer() {
     return;
   }
 
-  const isDuplicate = players.some(p => p.toLowerCase() === rawName.toLowerCase());
-  if (isDuplicate) {
-    showToast(`O jogador "${rawName}" já está inscrito no campeonato!`, 'warning');
+  const isAlreadyInActive = players.some(p => p.toLowerCase() === rawName.toLowerCase());
+  if (isAlreadyInActive) {
+    showToast(`O jogador "${rawName}" já está disputando o campeonato atual!`, 'warning');
     input.focus();
+    return;
+  }
+
+  // Se já existe no banco de jogadores cadastrados (mas fora deste campeonato), inscreve direto!
+  const existingInBank = registeredPlayers.find(p => p.toLowerCase() === rawName.toLowerCase());
+  if (existingInBank) {
+    input.value = '';
+    enrollRegisteredPlayer(existingInBank);
     return;
   }
 
@@ -1331,21 +1476,18 @@ function handleAddPlayer() {
 }
 
 function executeAddPlayer(playerName) {
-  // Se for uma restauração do jogador recém-removido, recupera as partidas e placares originais!
-  if (preRemovalMatchesBackup && preRemovalPlayersBackup && preRemovalPlayersBackup.includes(playerName) && preRemovalPlayersBackup.length === players.length + 1) {
-    players = [...preRemovalPlayersBackup];
-    matches = JSON.parse(JSON.stringify(preRemovalMatchesBackup));
-    preRemovalMatchesBackup = null;
-    preRemovalPlayersBackup = null;
+  if (!registeredPlayers.includes(playerName)) {
+    registeredPlayers.push(playerName);
+  }
+
+  if (!players.includes(playerName)) {
+    players.push(playerName);
+  }
+
+  if (isExactOriginalFour(players)) {
+    matches = JSON.parse(JSON.stringify(DEFAULT_MATCHES_4));
   } else {
-    if (!players.includes(playerName)) {
-      players.push(playerName);
-    }
-    if (isExactOriginalFour(players)) {
-      matches = JSON.parse(JSON.stringify(DEFAULT_MATCHES_4));
-    } else {
-      matches = generateRoundRobinSchedule(players);
-    }
+    matches = generateRoundRobinSchedule(players);
   }
 
   if (pendingNewPlayerPhoto) {
@@ -1363,58 +1505,55 @@ function executeAddPlayer(playerName) {
   hasCelebrated = false;
   renderApp();
   syncToCloud(true);
-  showToast(`Jogador "${playerName}" inscrito! Atualizado em tempo real para todos.`, 'success');
+  showToast(`Jogador "${playerName}" cadastrado e inscrito no campeonato!`, 'success');
 }
 
-window.confirmRemovePlayer = function(playerName) {
+/**
+ * 1. REMOVER APENAS DO CAMPEONATO ATUAL
+ * O jogador sai do campeonato ativo mas CONTINUA no Banco de Jogadores com foto e dados salvos!
+ */
+window.removePlayerFromCompetition = function(playerName) {
   if (players.length <= 3) {
-    showToast('O sistema precisa manter no mínimo 3 jogadores cadastrados.', 'warning');
+    showToast('O campeonato ativo precisa ter no mínimo 3 participantes. Para remover este jogador, adicione outro primeiro.', 'warning');
     return;
   }
 
   openConfirmModal({
-    title: `Excluir Usuário Oficialmente?`,
-    message: `Tem certeza de que deseja excluir definitivamente o jogador "${playerName}" do sistema? Esta ação é oficial e definitiva: o cadastro, a foto de perfil e os registros ativos deste usuário serão apagados do banco de dados.`,
-    icon: '🗑️',
-    confirmText: 'Sim, excluir oficialmente',
+    title: 'Remover do Campeonato Atual?',
+    message: `Deseja remover "${playerName}" apenas da disputa do campeonato ativo? O jogador CONTINUARÁ salvo na sua Lista de Jogadores Cadastrados com sua foto e histórico preservados, e poderá ser inscrito de volta a qualquer momento com um clique.`,
+    icon: '⛔',
+    confirmText: 'Sim, remover do campeonato',
     cancelText: 'Cancelar',
     onConfirm: () => {
-      // 1. Remove oficialmente da lista de jogadores do sistema
+      // 1. Remove apenas do torneio ativo
       players = players.filter(p => p !== playerName);
 
-      // 2. Apaga a foto de perfil definitiva do usuário
-      if (playerPhotos && playerPhotos[playerName]) {
-        delete playerPhotos[playerName];
+      // Garante que continua em registeredPlayers
+      if (!registeredPlayers.includes(playerName)) {
+        registeredPlayers.push(playerName);
       }
 
-      // 3. Remove de backups para que não fique como participante pendente de restauração rápida
-      if (preRemovalPlayersBackup) {
-        preRemovalPlayersBackup = preRemovalPlayersBackup.filter(p => p !== playerName);
-      }
-
-      // 4. Se o usuário atual logado for este excluído, desvincula a identificação
-      if (currentUser && currentUser.toLowerCase() === playerName.toLowerCase()) {
-        currentUser = null;
-        localStorage.removeItem('efootball_current_user');
-      }
-
-      // 5. Recalcula as rodadas do campeonato ativo para os participantes restantes
+      // 2. Recalcula rodadas do campeonato ativo
       if (isExactOriginalFour(players)) {
         matches = JSON.parse(JSON.stringify(DEFAULT_MATCHES_4));
       } else {
         matches = generateRoundRobinSchedule(players);
       }
 
-      // 6. Atualiza o Mata-Mata se o usuário excluído estava nele
+      // 3. Atualiza Mata-Mata se estava disputando
       if (knockoutState && Array.isArray(knockoutState.ties)) {
         let koChanged = false;
         knockoutState.ties.forEach(t => {
           if (t.home === playerName) {
-            t.home = 'BYE (Avança direto)';
+            t.home = 'A definir';
+            t.leg1Home = null;
+            t.leg2Home = null;
             koChanged = true;
           }
           if (t.away === playerName) {
-            t.away = 'BYE (Avança direto)';
+            t.away = 'A definir';
+            t.leg1Away = null;
+            t.leg2Away = null;
             koChanged = true;
           }
         });
@@ -1426,10 +1565,132 @@ window.confirmRemovePlayer = function(playerName) {
       hasCelebrated = false;
       renderApp();
       syncToCloud(true);
-      showToast(`Usuário "${playerName}" foi excluído oficialmente do sistema!`, 'danger');
+      showToast(`"${playerName}" foi removido do campeonato atual e movido para o Banco de Jogadores!`, 'info');
     }
   });
 };
+
+/**
+ * 2. INSCREVER JOGADOR DO BANCO NO CAMPEONATO ATUAL
+ */
+window.enrollRegisteredPlayer = function(playerName) {
+  if (players.includes(playerName)) {
+    showToast(`O jogador "${playerName}" já está no campeonato atual.`, 'info');
+    return;
+  }
+
+  if (players.length >= 16) {
+    showToast('Limite máximo de 16 participantes atingido!', 'warning');
+    return;
+  }
+
+  const playedCount = matches.filter(m => m.homeScore !== null && m.awayScore !== null).length;
+
+  const doEnroll = () => {
+    players.push(playerName);
+    if (!registeredPlayers.includes(playerName)) {
+      registeredPlayers.push(playerName);
+    }
+    if (isExactOriginalFour(players)) {
+      matches = JSON.parse(JSON.stringify(DEFAULT_MATCHES_4));
+    } else {
+      matches = generateRoundRobinSchedule(players);
+    }
+    hasCelebrated = false;
+    renderApp();
+    syncToCloud(true);
+    showToast(`"${playerName}" foi inscrito no campeonato ativo com sucesso!`, 'success');
+  };
+
+  if (playedCount > 0) {
+    openConfirmModal({
+      title: 'Inscrever no Campeonato em Andamento?',
+      message: `O campeonato atual já possui ${playedCount} partidas com resultado. Ao inscrever "${playerName}", uma nova grade de rodadas será gerada para incluir o jogador. Deseja continuar?`,
+      icon: '➕',
+      confirmText: 'Sim, inscrever e atualizar',
+      cancelText: 'Cancelar',
+      onConfirm: doEnroll
+    });
+  } else {
+    doEnroll();
+  }
+};
+
+/**
+ * 3. EXCLUIR DEFINITIVAMENTE DO SISTEMA (EXCLUIR DE VEZ)
+ */
+window.confirmDeletePlayerPermanently = function(playerName) {
+  const isEnrolled = players.includes(playerName);
+
+  if (isEnrolled && players.length <= 3 && registeredPlayers.length <= 3) {
+    showToast('O sistema precisa manter no mínimo 3 jogadores cadastrados.', 'warning');
+    return;
+  }
+
+  if (isEnrolled && players.length <= 3) {
+    showToast('O campeonato ativo ficaria com menos de 3 jogadores. Inscreva outro jogador antes de excluir este.', 'warning');
+    return;
+  }
+
+  openConfirmModal({
+    title: `Excluir Usuário de Vez?`,
+    message: `ATENÇÃO: Tem certeza de que deseja apagar definitivamente "${playerName}" de TODO o sistema? O cadastro geral, a foto de perfil e todos os vínculos serão excluídos permanentemente do banco de dados. (Dica: se quiser apenas tirar do campeonato atual, use o botão "Tirar do Camp.").`,
+    icon: '🗑️',
+    confirmText: 'Sim, excluir de vez',
+    cancelText: 'Cancelar',
+    onConfirm: () => {
+      // 1. Remove do campeonato ativo
+      players = players.filter(p => p !== playerName);
+
+      // 2. Remove da lista geral de cadastrados
+      registeredPlayers = registeredPlayers.filter(p => p !== playerName);
+
+      // 3. Remove a foto de perfil definitiva
+      if (playerPhotos && playerPhotos[playerName]) {
+        delete playerPhotos[playerName];
+      }
+
+      // 4. Limpa se for o usuário logado
+      if (currentUser && currentUser.toLowerCase() === playerName.toLowerCase()) {
+        currentUser = null;
+        localStorage.removeItem('efootball_current_user');
+      }
+
+      // 5. Ajusta o campeonato ativo
+      if (isExactOriginalFour(players)) {
+        matches = JSON.parse(JSON.stringify(DEFAULT_MATCHES_4));
+      } else {
+        matches = generateRoundRobinSchedule(players);
+      }
+
+      // 6. Atualiza mata-mata se necessário
+      if (knockoutState && Array.isArray(knockoutState.ties)) {
+        let koChanged = false;
+        knockoutState.ties.forEach(t => {
+          if (t.home === playerName) {
+            t.home = 'A definir';
+            koChanged = true;
+          }
+          if (t.away === playerName) {
+            t.away = 'A definir';
+            koChanged = true;
+          }
+        });
+        if (koChanged) {
+          propagateKnockoutBracket();
+        }
+      }
+
+      hasCelebrated = false;
+      renderApp();
+      syncToCloud(true);
+      showToast(`Usuário "${playerName}" foi excluído de vez do sistema.`, 'danger');
+    }
+  });
+};
+
+// Mantém alias para compatibilidade com qualquer referência antiga
+window.confirmRemovePlayer = window.confirmDeletePlayerPermanently;
 
 /* ==========================================================================
    Verificação de Campeão & Celebração
@@ -3851,39 +4112,9 @@ function closePlayerContextMenu() {
 }
 
 function getUnenrolledPlayers() {
-  const allKnown = new Set(INITIAL_PLAYERS);
-  if (preRemovalPlayersBackup && Array.isArray(preRemovalPlayersBackup)) {
-    preRemovalPlayersBackup.forEach(p => allKnown.add(p));
-  }
-  // Adiciona do cache de fotos
-  if (playerPhotos && typeof playerPhotos === 'object') {
-    Object.keys(playerPhotos).forEach(name => {
-      if (name && !name.startsWith('__')) allKnown.add(name);
-    });
-  }
-  // Adiciona do histórico de campeonatos
-  if (Array.isArray(tournamentHistory)) {
-    tournamentHistory.forEach(h => {
-      if (h.champion && h.champion !== '-' && !h.champion.startsWith('BYE')) allKnown.add(h.champion);
-      if (h.runnerUp && h.runnerUp !== '-' && !h.runnerUp.startsWith('BYE')) allKnown.add(h.runnerUp);
-      if (h.thirdPlace && h.thirdPlace !== '-' && !h.thirdPlace.startsWith('BYE')) allKnown.add(h.thirdPlace);
-      if (Array.isArray(h.standingsSnapshot)) {
-        h.standingsSnapshot.forEach(p => {
-          if (p.name && !p.name.startsWith('BYE')) allKnown.add(p.name);
-        });
-      }
-      if (Array.isArray(h.matchesSnapshot)) {
-        h.matchesSnapshot.forEach(m => {
-          if (m.home && !m.home.startsWith('BYE')) allKnown.add(m.home);
-          if (m.away && !m.away.startsWith('BYE')) allKnown.add(m.away);
-        });
-      }
-    });
-  }
-
-  // Filtra apenas jogadores que NÃO estão atualmente na competição ativa
+  ensureRegisteredPlayersConsistency();
   const currentSet = new Set(players.map(p => p.toLowerCase()));
-  return Array.from(allKnown).filter(name => !currentSet.has(name.toLowerCase()));
+  return registeredPlayers.filter(name => !currentSet.has(name.toLowerCase()));
 }
 
 function openQuickAddPlayerModal() {
@@ -3898,7 +4129,7 @@ function openQuickAddPlayerModal() {
   if (unenrolled.length === 0) {
     listEl.innerHTML = `
       <div class="quick-add-empty">
-        Todos os jogadores anteriores já estão inscritos nesta competição.
+        Todos os jogadores cadastrados já estão inscritos nesta competição.
       </div>
     `;
   } else {
@@ -3912,7 +4143,7 @@ function openQuickAddPlayerModal() {
           <span class="quick-add-name">${name}</span>
         </div>
         <button type="button" class="btn btn-primary btn-sm" onclick="quickEnrollPlayer('${name}')">
-          <span>➕ Adicionar de volta</span>
+          <span>➕ Inscrever no Camp.</span>
         </button>
       `;
       listEl.appendChild(row);
@@ -3931,37 +4162,8 @@ function closeQuickAddPlayerModal() {
 }
 
 window.quickEnrollPlayer = function(playerName) {
-  if (players.includes(playerName)) {
-    showToast(`"${playerName}" já está no campeonato.`, 'info');
-    closeQuickAddPlayerModal();
-    return;
-  }
-
-  // Se for restauração de jogador recém-removido, recupera os jogos e placares de volta imediatamente
-  if (preRemovalMatchesBackup && preRemovalPlayersBackup && preRemovalPlayersBackup.includes(playerName)) {
-    executeAddPlayer(playerName);
-    closeQuickAddPlayerModal();
-    showToast(`Partidas e placares de "${playerName}" restaurados com sucesso!`, 'success');
-    return;
-  }
-
-  const playedCount = matches.filter(m => m.homeScore !== null && m.awayScore !== null).length;
-  if (playedCount > 0) {
-    openConfirmModal({
-      title: 'Adicionar à Competição em Andamento?',
-      message: `O campeonato já tem ${playedCount} partidas com resultado registrado. Adicionar "${playerName}" irá reorganizar as rodadas e reiniciar os placares. Deseja continuar?`,
-      icon: '➕',
-      confirmText: 'Sim, adicionar',
-      cancelText: 'Cancelar',
-      onConfirm: () => {
-        executeAddPlayer(playerName);
-        closeQuickAddPlayerModal();
-      }
-    });
-  } else {
-    executeAddPlayer(playerName);
-    closeQuickAddPlayerModal();
-  }
+  closeQuickAddPlayerModal();
+  enrollRegisteredPlayer(playerName);
 };
 
 function handleQuickAddNewPlayerSubmit() {
@@ -4343,15 +4545,31 @@ function setupEventListeners() {
   window.addEventListener('scroll', closePlayerContextMenu, { passive: true });
 
   // Ações do Menu de Contexto
+  const contextBtnPause = document.getElementById('contextMenuBtnPausePlayer');
+  const contextBtnDelete = document.getElementById('contextMenuBtnDeletePermanent');
   const contextBtnRemove = document.getElementById('contextMenuBtnRemovePlayer');
   const contextBtnIdentify = document.getElementById('contextMenuBtnIdentify');
   const contextBtnPhoto = document.getElementById('contextMenuBtnChangePhoto');
 
+  if (contextBtnPause) {
+    contextBtnPause.addEventListener('click', () => {
+      const p = activeContextPlayer;
+      closePlayerContextMenu();
+      if (p) removePlayerFromCompetition(p);
+    });
+  }
+  if (contextBtnDelete) {
+    contextBtnDelete.addEventListener('click', () => {
+      const p = activeContextPlayer;
+      closePlayerContextMenu();
+      if (p) confirmDeletePlayerPermanently(p);
+    });
+  }
   if (contextBtnRemove) {
     contextBtnRemove.addEventListener('click', () => {
       const p = activeContextPlayer;
       closePlayerContextMenu();
-      if (p) confirmRemovePlayer(p);
+      if (p) removePlayerFromCompetition(p);
     });
   }
   if (contextBtnIdentify) {
