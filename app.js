@@ -1797,21 +1797,69 @@ function startKnockoutDrawAnimation() {
 function executeKnockoutDraw(format) {
   const shuffled = shuffleArray(players);
   const ties = [];
+  const teamCount = shuffled.length;
 
-  if (shuffled.length <= 4) {
-    // Semifinais diretas (se forem 3 jogadores, o 4º slot é Folga/BYE)
-    const p1 = shuffled[0] || 'A definir';
-    const p2 = shuffled[1] || 'A definir';
-    const p3 = shuffled[2] || 'A definir';
-    const p4 = shuffled[3] || 'BYE (Avança direto)';
+  if (teamCount === 3) {
+    // 3 Jogadores: P0 avança direto para a Final; P1 e P2 disputam a Semifinal única
+    ties.push({
+      id: 'sf1',
+      stageId: 'semi',
+      stageTitle: 'Semifinal',
+      label: 'Semifinal Única',
+      home: shuffled[1],
+      away: shuffled[2],
+      leg1Home: null,
+      leg1Away: null,
+      leg2Home: null,
+      leg2Away: null,
+      penHome: null,
+      penAway: null,
+      penaltyWinner: null,
+      showPenalties: false
+    });
 
+    ties.push({
+      id: 'third',
+      stageId: 'third',
+      stageTitle: 'Disputa de 3º Lugar',
+      label: '3º Lugar (Bronze)',
+      home: 'Perdedor Semifinal',
+      away: 'Medalha de Bronze',
+      leg1Home: null,
+      leg1Away: null,
+      leg2Home: null,
+      leg2Away: null,
+      penHome: null,
+      penAway: null,
+      penaltyWinner: null,
+      showPenalties: false
+    });
+
+    ties.push({
+      id: 'final',
+      stageId: 'final',
+      stageTitle: 'Grande Final 🏆',
+      label: 'Grande Final',
+      home: shuffled[0],
+      away: 'Vencedor Semifinal',
+      leg1Home: null,
+      leg1Away: null,
+      leg2Home: null,
+      leg2Away: null,
+      penHome: null,
+      penAway: null,
+      penaltyWinner: null,
+      showPenalties: false
+    });
+  } else if (teamCount === 4) {
+    // 4 Jogadores: Semifinais diretas (P0 vs P1 e P2 vs P3)
     ties.push({
       id: 'sf1',
       stageId: 'semi',
       stageTitle: 'Semifinais',
       label: 'Semifinal 1',
-      home: p1,
-      away: p2,
+      home: shuffled[0],
+      away: shuffled[1],
       leg1Home: null,
       leg1Away: null,
       leg2Home: null,
@@ -1827,12 +1875,327 @@ function executeKnockoutDraw(format) {
       stageId: 'semi',
       stageTitle: 'Semifinais',
       label: 'Semifinal 2',
-      home: p3,
-      away: p4,
-      leg1Home: p4.startsWith('BYE') ? 1 : null,
-      leg1Away: p4.startsWith('BYE') ? 0 : null,
-      leg2Home: p4.startsWith('BYE') ? 0 : null,
-      leg2Away: p4.startsWith('BYE') ? 0 : null,
+      home: shuffled[2],
+      away: shuffled[3],
+      leg1Home: null,
+      leg1Away: null,
+      leg2Home: null,
+      leg2Away: null,
+      penHome: null,
+      penAway: null,
+      penaltyWinner: null,
+      showPenalties: false
+    });
+
+    ties.push({
+      id: 'third',
+      stageId: 'third',
+      stageTitle: 'Disputa de 3º Lugar',
+      label: '3º e 4º Lugar',
+      home: 'Perdedor Semifinal 1',
+      away: 'Perdedor Semifinal 2',
+      leg1Home: null,
+      leg1Away: null,
+      leg2Home: null,
+      leg2Away: null,
+      penHome: null,
+      penAway: null,
+      penaltyWinner: null,
+      showPenalties: false
+    });
+
+    ties.push({
+      id: 'final',
+      stageId: 'final',
+      stageTitle: 'Grande Final 🏆',
+      label: 'Grande Final',
+      home: 'Vencedor Semifinal 1',
+      away: 'Vencedor Semifinal 2',
+      leg1Home: null,
+      leg1Away: null,
+      leg2Home: null,
+      leg2Away: null,
+      penHome: null,
+      penAway: null,
+      penaltyWinner: null,
+      showPenalties: false
+    });
+  } else if (teamCount === 5) {
+    // 5 Jogadores: P0 e P1 disputam Semifinal 1; P2 avança direto para Semifinal 2;
+    // P3 e P4 disputam o Playoff de Quartas (QF1). O vencedor de QF1 enfrenta P2 na Semifinal 2!
+    ties.push({
+      id: 'qf1',
+      stageId: 'quarter',
+      stageTitle: 'Quartas de Final',
+      label: 'Quartas (Playoff)',
+      home: shuffled[3],
+      away: shuffled[4],
+      leg1Home: null,
+      leg1Away: null,
+      leg2Home: null,
+      leg2Away: null,
+      penHome: null,
+      penAway: null,
+      penaltyWinner: null,
+      showPenalties: false
+    });
+
+    ties.push({
+      id: 'sf1',
+      stageId: 'semi',
+      stageTitle: 'Semifinais',
+      label: 'Semifinal 1',
+      home: shuffled[0],
+      away: shuffled[1],
+      leg1Home: null,
+      leg1Away: null,
+      leg2Home: null,
+      leg2Away: null,
+      penHome: null,
+      penAway: null,
+      penaltyWinner: null,
+      showPenalties: false
+    });
+
+    ties.push({
+      id: 'sf2',
+      stageId: 'semi',
+      stageTitle: 'Semifinais',
+      label: 'Semifinal 2',
+      home: shuffled[2],
+      away: 'Vencedor Quartas',
+      leg1Home: null,
+      leg1Away: null,
+      leg2Home: null,
+      leg2Away: null,
+      penHome: null,
+      penAway: null,
+      penaltyWinner: null,
+      showPenalties: false
+    });
+
+    ties.push({
+      id: 'third',
+      stageId: 'third',
+      stageTitle: 'Disputa de 3º Lugar',
+      label: '3º e 4º Lugar',
+      home: 'Perdedor Semifinal 1',
+      away: 'Perdedor Semifinal 2',
+      leg1Home: null,
+      leg1Away: null,
+      leg2Home: null,
+      leg2Away: null,
+      penHome: null,
+      penAway: null,
+      penaltyWinner: null,
+      showPenalties: false
+    });
+
+    ties.push({
+      id: 'final',
+      stageId: 'final',
+      stageTitle: 'Grande Final 🏆',
+      label: 'Grande Final',
+      home: 'Vencedor Semifinal 1',
+      away: 'Vencedor Semifinal 2',
+      leg1Home: null,
+      leg1Away: null,
+      leg2Home: null,
+      leg2Away: null,
+      penHome: null,
+      penAway: null,
+      penaltyWinner: null,
+      showPenalties: false
+    });
+  } else if (teamCount === 6) {
+    // 6 Jogadores: P0 vai para SF1 e P1 vai para SF2.
+    // QF1: P2 vs P3 -> alimenta SF1.away
+    // QF2: P4 vs P5 -> alimenta SF2.away
+    ties.push({
+      id: 'qf1',
+      stageId: 'quarter',
+      stageTitle: 'Quartas de Final',
+      label: 'Quartas 1',
+      home: shuffled[2],
+      away: shuffled[3],
+      leg1Home: null,
+      leg1Away: null,
+      leg2Home: null,
+      leg2Away: null,
+      penHome: null,
+      penAway: null,
+      penaltyWinner: null,
+      showPenalties: false
+    });
+
+    ties.push({
+      id: 'qf2',
+      stageId: 'quarter',
+      stageTitle: 'Quartas de Final',
+      label: 'Quartas 2',
+      home: shuffled[4],
+      away: shuffled[5],
+      leg1Home: null,
+      leg1Away: null,
+      leg2Home: null,
+      leg2Away: null,
+      penHome: null,
+      penAway: null,
+      penaltyWinner: null,
+      showPenalties: false
+    });
+
+    ties.push({
+      id: 'sf1',
+      stageId: 'semi',
+      stageTitle: 'Semifinais',
+      label: 'Semifinal 1',
+      home: shuffled[0],
+      away: 'Vencedor Quartas 1',
+      leg1Home: null,
+      leg1Away: null,
+      leg2Home: null,
+      leg2Away: null,
+      penHome: null,
+      penAway: null,
+      penaltyWinner: null,
+      showPenalties: false
+    });
+
+    ties.push({
+      id: 'sf2',
+      stageId: 'semi',
+      stageTitle: 'Semifinais',
+      label: 'Semifinal 2',
+      home: shuffled[1],
+      away: 'Vencedor Quartas 2',
+      leg1Home: null,
+      leg1Away: null,
+      leg2Home: null,
+      leg2Away: null,
+      penHome: null,
+      penAway: null,
+      penaltyWinner: null,
+      showPenalties: false
+    });
+
+    ties.push({
+      id: 'third',
+      stageId: 'third',
+      stageTitle: 'Disputa de 3º Lugar',
+      label: '3º e 4º Lugar',
+      home: 'Perdedor Semifinal 1',
+      away: 'Perdedor Semifinal 2',
+      leg1Home: null,
+      leg1Away: null,
+      leg2Home: null,
+      leg2Away: null,
+      penHome: null,
+      penAway: null,
+      penaltyWinner: null,
+      showPenalties: false
+    });
+
+    ties.push({
+      id: 'final',
+      stageId: 'final',
+      stageTitle: 'Grande Final 🏆',
+      label: 'Grande Final',
+      home: 'Vencedor Semifinal 1',
+      away: 'Vencedor Semifinal 2',
+      leg1Home: null,
+      leg1Away: null,
+      leg2Home: null,
+      leg2Away: null,
+      penHome: null,
+      penAway: null,
+      penaltyWinner: null,
+      showPenalties: false
+    });
+  } else if (teamCount === 7) {
+    // 7 Jogadores: P0 avança para SF1.
+    // QF1: P1 vs P2 -> alimenta SF1.away
+    // QF2: P3 vs P4 -> alimenta SF2.home
+    // QF3: P5 vs P6 -> alimenta SF2.away
+    ties.push({
+      id: 'qf1',
+      stageId: 'quarter',
+      stageTitle: 'Quartas de Final',
+      label: 'Quartas 1',
+      home: shuffled[1],
+      away: shuffled[2],
+      leg1Home: null,
+      leg1Away: null,
+      leg2Home: null,
+      leg2Away: null,
+      penHome: null,
+      penAway: null,
+      penaltyWinner: null,
+      showPenalties: false
+    });
+
+    ties.push({
+      id: 'qf2',
+      stageId: 'quarter',
+      stageTitle: 'Quartas de Final',
+      label: 'Quartas 2',
+      home: shuffled[3],
+      away: shuffled[4],
+      leg1Home: null,
+      leg1Away: null,
+      leg2Home: null,
+      leg2Away: null,
+      penHome: null,
+      penAway: null,
+      penaltyWinner: null,
+      showPenalties: false
+    });
+
+    ties.push({
+      id: 'qf3',
+      stageId: 'quarter',
+      stageTitle: 'Quartas de Final',
+      label: 'Quartas 3',
+      home: shuffled[5],
+      away: shuffled[6],
+      leg1Home: null,
+      leg1Away: null,
+      leg2Home: null,
+      leg2Away: null,
+      penHome: null,
+      penAway: null,
+      penaltyWinner: null,
+      showPenalties: false
+    });
+
+    ties.push({
+      id: 'sf1',
+      stageId: 'semi',
+      stageTitle: 'Semifinais',
+      label: 'Semifinal 1',
+      home: shuffled[0],
+      away: 'Vencedor Quartas 1',
+      leg1Home: null,
+      leg1Away: null,
+      leg2Home: null,
+      leg2Away: null,
+      penHome: null,
+      penAway: null,
+      penaltyWinner: null,
+      showPenalties: false
+    });
+
+    ties.push({
+      id: 'sf2',
+      stageId: 'semi',
+      stageTitle: 'Semifinais',
+      label: 'Semifinal 2',
+      home: 'Vencedor Quartas 2',
+      away: 'Vencedor Quartas 3',
+      leg1Home: null,
+      leg1Away: null,
+      leg2Home: null,
+      leg2Away: null,
       penHome: null,
       penAway: null,
       penaltyWinner: null,
@@ -1873,40 +2236,73 @@ function executeKnockoutDraw(format) {
       showPenalties: false
     });
   } else {
-    // Até 8 jogadores: Quartas de Final -> Semifinais -> 3º Lugar -> Final
-    const slots = [...shuffled.slice(0, 8)];
-    while (slots.length < 8) {
-      slots.push('BYE (Avança direto)');
-    }
+    // 8 ou mais jogadores: 4 confrontos de Quartas de Final completos (QF1, QF2, QF3, QF4)
+    ties.push({
+      id: 'qf1',
+      stageId: 'quarter',
+      stageTitle: 'Quartas de Final',
+      label: 'Quartas 1',
+      home: shuffled[0],
+      away: shuffled[1],
+      leg1Home: null,
+      leg1Away: null,
+      leg2Home: null,
+      leg2Away: null,
+      penHome: null,
+      penAway: null,
+      penaltyWinner: null,
+      showPenalties: false
+    });
 
-    // Distribui BYEs para não caírem BYE vs BYE
-    const teamCount = shuffled.slice(0, 8).length;
-    const byeCount = 8 - teamCount;
-    const pairs = [];
-    for (let i = 0; i < 4; i++) {
-      const h = shuffled[i] || 'A definir';
-      const a = (i < byeCount) ? 'BYE (Avança direto)' : (shuffled[i + 4] || 'BYE (Avança direto)');
-      pairs.push([h, a]);
-    }
+    ties.push({
+      id: 'qf2',
+      stageId: 'quarter',
+      stageTitle: 'Quartas de Final',
+      label: 'Quartas 2',
+      home: shuffled[2],
+      away: shuffled[3],
+      leg1Home: null,
+      leg1Away: null,
+      leg2Home: null,
+      leg2Away: null,
+      penHome: null,
+      penAway: null,
+      penaltyWinner: null,
+      showPenalties: false
+    });
 
-    pairs.forEach((pair, idx) => {
-      const isBye = pair[1].startsWith('BYE');
-      ties.push({
-        id: `qf${idx + 1}`,
-        stageId: 'quarter',
-        stageTitle: 'Quartas de Final',
-        label: `Quartas ${idx + 1}`,
-        home: pair[0],
-        away: pair[1],
-        leg1Home: isBye ? 1 : null,
-        leg1Away: isBye ? 0 : null,
-        leg2Home: isBye ? 0 : null,
-        leg2Away: isBye ? 0 : null,
-        penHome: null,
-        penAway: null,
-        penaltyWinner: null,
-        showPenalties: false
-      });
+    ties.push({
+      id: 'qf3',
+      stageId: 'quarter',
+      stageTitle: 'Quartas de Final',
+      label: 'Quartas 3',
+      home: shuffled[4],
+      away: shuffled[5],
+      leg1Home: null,
+      leg1Away: null,
+      leg2Home: null,
+      leg2Away: null,
+      penHome: null,
+      penAway: null,
+      penaltyWinner: null,
+      showPenalties: false
+    });
+
+    ties.push({
+      id: 'qf4',
+      stageId: 'quarter',
+      stageTitle: 'Quartas de Final',
+      label: 'Quartas 4',
+      home: shuffled[6],
+      away: shuffled[7],
+      leg1Home: null,
+      leg1Away: null,
+      leg2Home: null,
+      leg2Away: null,
+      penHome: null,
+      penAway: null,
+      penaltyWinner: null,
+      showPenalties: false
     });
 
     ties.push({
@@ -1996,7 +2392,10 @@ function isPlaceholderTeam(name) {
   return (
     name.startsWith('Vencedor ') ||
     name.startsWith('Perdedor ') ||
-    name === 'A definir'
+    name === 'A definir' ||
+    name === '-' ||
+    name === 'Medalha de Bronze' ||
+    name.startsWith('BYE')
   );
 }
 
@@ -2028,13 +2427,6 @@ function resolveTieOutcome(tie, format) {
       penAway: null,
       allLegsPlayed: false
     };
-  }
-
-  if (tie.away.startsWith('BYE')) {
-    return { winner: tie.home, loser: tie.away, isDrawPending: false, homeTotal: 1, awayTotal: 0, decidedByPenalties: false, penHome: null, penAway: null, allLegsPlayed: true };
-  }
-  if (tie.home.startsWith('BYE')) {
-    return { winner: tie.away, loser: tie.home, isDrawPending: false, homeTotal: 0, awayTotal: 1, decidedByPenalties: false, penHome: null, penAway: null, allLegsPlayed: true };
   }
 
   const hasLeg1 = tie.leg1Home !== null && tie.leg1Away !== null && !isNaN(tie.leg1Home) && !isNaN(tie.leg1Away);
@@ -2124,31 +2516,50 @@ function propagateKnockoutBracket() {
   const fmt = knockoutState.format || 'two_legs';
   const findTie = (id) => knockoutState.ties.find(t => t.id === id);
 
-  // Propaga Quartas -> Semifinais (se houver Quartas)
   const qf1 = findTie('qf1');
   const qf2 = findTie('qf2');
   const qf3 = findTie('qf3');
   const qf4 = findTie('qf4');
   const sf1 = findTie('sf1');
   const sf2 = findTie('sf2');
+  const finalTie = findTie('final');
+  const third = findTie('third');
 
-  if (qf1 && qf2 && sf1) {
-    const r1 = resolveTieOutcome(qf1, fmt);
-    const r2 = resolveTieOutcome(qf2, fmt);
-    sf1.home = r1.winner || 'Vencedor Quartas 1';
-    sf1.away = r2.winner || 'Vencedor Quartas 2';
+  // Propagação dinâmica das Quartas -> Semifinais
+  if (sf1) {
+    if (qf1 && qf2) {
+      const r1 = resolveTieOutcome(qf1, fmt);
+      const r2 = resolveTieOutcome(qf2, fmt);
+      sf1.home = r1.winner || 'Vencedor Quartas 1';
+      sf1.away = r2.winner || 'Vencedor Quartas 2';
+    } else if (qf1 && sf1.away && sf1.away.startsWith('Vencedor')) {
+      const r1 = resolveTieOutcome(qf1, fmt);
+      sf1.away = r1.winner || 'Vencedor Quartas 1';
+    }
   }
-  if (qf3 && qf4 && sf2) {
-    const r3 = resolveTieOutcome(qf3, fmt);
-    const r4 = resolveTieOutcome(qf4, fmt);
-    sf2.home = r3.winner || 'Vencedor Quartas 3';
-    sf2.away = r4.winner || 'Vencedor Quartas 4';
+
+  if (sf2) {
+    if (qf3 && qf4) {
+      const r3 = resolveTieOutcome(qf3, fmt);
+      const r4 = resolveTieOutcome(qf4, fmt);
+      sf2.home = r3.winner || 'Vencedor Quartas 3';
+      sf2.away = r4.winner || 'Vencedor Quartas 4';
+    } else if (qf2 && qf3 && !qf4) {
+      const r2 = resolveTieOutcome(qf2, fmt);
+      const r3 = resolveTieOutcome(qf3, fmt);
+      sf2.home = r2.winner || 'Vencedor Quartas 2';
+      sf2.away = r3.winner || 'Vencedor Quartas 3';
+    } else if (qf2 && !qf3 && !qf4 && sf2.away && sf2.away.startsWith('Vencedor')) {
+      const r2 = resolveTieOutcome(qf2, fmt);
+      sf2.away = r2.winner || 'Vencedor Quartas 2';
+    } else if (qf1 && !qf2 && !qf3 && !qf4 && sf2.away && sf2.away.startsWith('Vencedor')) {
+      // 5 Jogadores: QF1 alimenta SF2.away
+      const r1 = resolveTieOutcome(qf1, fmt);
+      sf2.away = r1.winner || 'Vencedor Quartas';
+    }
   }
 
   // Propaga Semifinais -> Disputa de 3º Lugar e Grande Final
-  const third = findTie('third');
-  const finalTie = findTie('final');
-
   if (sf1 && sf2) {
     const resSf1 = resolveTieOutcome(sf1, fmt);
     const resSf2 = resolveTieOutcome(sf2, fmt);
@@ -2161,14 +2572,16 @@ function propagateKnockoutBracket() {
     if (third) {
       third.home = resSf1.loser || 'Perdedor Semifinal 1';
       third.away = resSf2.loser || 'Perdedor Semifinal 2';
-      // Se um dos lados for BYE, o outro fica em 3º automaticamente (3º lugar é sempre jogo único)
-      if (third.away.startsWith('BYE') && !isPlaceholderTeam(third.home)) {
-        third.leg1Home = 1;
-        third.leg1Away = 0;
-      } else if (third.home.startsWith('BYE') && !isPlaceholderTeam(third.away)) {
-        third.leg1Home = 0;
-        third.leg1Away = 1;
-      }
+    }
+  } else if (sf1 && !sf2) {
+    // 3 Jogadores: sf1 vencedor avança para a final contra o cabeça de chave
+    const resSf1 = resolveTieOutcome(sf1, fmt);
+    if (finalTie) {
+      finalTie.away = resSf1.winner || 'Vencedor Semifinal';
+    }
+    if (third) {
+      third.home = resSf1.loser || 'Perdedor Semifinal';
+      third.away = 'Medalha de Bronze';
     }
   }
 }
@@ -2448,7 +2861,7 @@ function renderKnockoutView() {
   const sf1 = findTie('sf1');
   const sf2 = findTie('sf2');
   const thirdTie = findTie('third');
-  const hasQuarters = Boolean(qf1 && qf2 && qf3 && qf4);
+  const hasQuarters = Boolean(qf1 || qf2 || qf3 || qf4);
 
   const stageSubLabel = fmt === 'two_legs' ? 'Ida e Volta (2 Jogos)' : 'Jogo Único';
 
@@ -2457,12 +2870,12 @@ function renderKnockoutView() {
       <!-- Cabeçalho Oficial do Pôster de Chaveamento da Copa -->
       <div class="fifa-poster-header">
         <div class="fifa-poster-badge">🏆 CHAVEAMENTO OFICIAL 2026</div>
-        <h2 class="fifa-poster-title">FIFA WORLD CUP 2026™</h2>
+        <h2 class="fifa-poster-title">DOMUM WORLD CUP 2026™</h2>
         <div class="fifa-poster-subtitle">Mata-Mata dos Amigos • Trajetória da Esquerda para a Direita até a Glória Eterna</div>
       </div>
 
       <div class="pitch-bracket-tree ltr-tree">
-        <!-- COLUNA 1: QUARTAS DE FINAL (se houver 8 participantes) -->
+        <!-- COLUNA 1: QUARTAS DE FINAL (se houver mais de 4 participantes) -->
         ${hasQuarters ? `
           <div class="bracket-col ltr-col col-quarter">
             <div class="bracket-stage-heading">
@@ -2470,27 +2883,85 @@ function renderKnockoutView() {
               <span class="bracket-stage-subtag">${stageSubLabel}</span>
             </div>
             <div class="bracket-stage-content">
-              <!-- Par Superior (QF1 e QF2 que levam à Semifinal 1) -->
-              <div class="bracket-pairing-block">
-                <div class="bracket-pairing-matches">
-                  ${buildBracketNodeHtml(qf1, fmt)}
-                  ${buildBracketNodeHtml(qf2, fmt)}
+              ${qf1 && qf2 && qf3 && qf4 ? `
+                <!-- 8 Participantes: 4 Jogos de Quartas completos -->
+                <div class="bracket-pairing-block">
+                  <div class="bracket-pairing-matches">
+                    ${buildBracketNodeHtml(qf1, fmt)}
+                    ${buildBracketNodeHtml(qf2, fmt)}
+                  </div>
+                  <svg class="bracket-pairing-fork-svg" viewBox="0 0 80 140" preserveAspectRatio="none">
+                    <path d="M0,35 L40,35 L40,105 L0,105 M40,70 L80,70" fill="none" stroke="rgba(255,255,255,0.45)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                  </svg>
                 </div>
-                <svg class="bracket-pairing-fork-svg" viewBox="0 0 80 140" preserveAspectRatio="none">
-                  <path d="M0,35 L40,35 L40,105 L0,105 M40,70 L80,70" fill="none" stroke="rgba(255,255,255,0.45)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
-                </svg>
-              </div>
 
-              <!-- Par Inferior (QF3 e QF4 que levam à Semifinal 2) -->
-              <div class="bracket-pairing-block">
-                <div class="bracket-pairing-matches">
-                  ${buildBracketNodeHtml(qf3, fmt)}
-                  ${buildBracketNodeHtml(qf4, fmt)}
+                <div class="bracket-pairing-block">
+                  <div class="bracket-pairing-matches">
+                    ${buildBracketNodeHtml(qf3, fmt)}
+                    ${buildBracketNodeHtml(qf4, fmt)}
+                  </div>
+                  <svg class="bracket-pairing-fork-svg" viewBox="0 0 80 140" preserveAspectRatio="none">
+                    <path d="M0,35 L40,35 L40,105 L0,105 M40,70 L80,70" fill="none" stroke="rgba(255,255,255,0.45)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                  </svg>
                 </div>
-                <svg class="bracket-pairing-fork-svg" viewBox="0 0 80 140" preserveAspectRatio="none">
-                  <path d="M0,35 L40,35 L40,105 L0,105 M40,70 L80,70" fill="none" stroke="rgba(255,255,255,0.45)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
-                </svg>
-              </div>
+              ` : qf1 && qf2 && qf3 && !qf4 ? `
+                <!-- 7 Participantes: QF1 em cima, QF2 e QF3 embaixo -->
+                <div class="bracket-pairing-block single-match-block">
+                  <div class="bracket-pairing-matches">
+                    ${buildBracketNodeHtml(qf1, fmt)}
+                  </div>
+                  <svg class="bracket-pairing-fork-svg single-lead-svg" viewBox="0 0 80 80" preserveAspectRatio="none">
+                    <path d="M0,40 L80,40" fill="none" stroke="rgba(255,255,255,0.45)" stroke-width="2" stroke-linecap="round" />
+                  </svg>
+                </div>
+
+                <div class="bracket-pairing-block">
+                  <div class="bracket-pairing-matches">
+                    ${buildBracketNodeHtml(qf2, fmt)}
+                    ${buildBracketNodeHtml(qf3, fmt)}
+                  </div>
+                  <svg class="bracket-pairing-fork-svg" viewBox="0 0 80 140" preserveAspectRatio="none">
+                    <path d="M0,35 L40,35 L40,105 L0,105 M40,70 L80,70" fill="none" stroke="rgba(255,255,255,0.45)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                  </svg>
+                </div>
+              ` : qf1 && qf2 && !qf3 && !qf4 ? `
+                <!-- 6 Participantes: QF1 em cima para SF1, QF2 embaixo para SF2 -->
+                <div class="bracket-pairing-block single-match-block">
+                  <div class="bracket-pairing-matches">
+                    ${buildBracketNodeHtml(qf1, fmt)}
+                  </div>
+                  <svg class="bracket-pairing-fork-svg single-lead-svg" viewBox="0 0 80 80" preserveAspectRatio="none">
+                    <path d="M0,40 L80,40" fill="none" stroke="rgba(255,255,255,0.45)" stroke-width="2" stroke-linecap="round" />
+                  </svg>
+                </div>
+
+                <div class="bracket-pairing-block single-match-block">
+                  <div class="bracket-pairing-matches">
+                    ${buildBracketNodeHtml(qf2, fmt)}
+                  </div>
+                  <svg class="bracket-pairing-fork-svg single-lead-svg" viewBox="0 0 80 80" preserveAspectRatio="none">
+                    <path d="M0,40 L80,40" fill="none" stroke="rgba(255,255,255,0.45)" stroke-width="2" stroke-linecap="round" />
+                  </svg>
+                </div>
+              ` : `
+                <!-- 5 Participantes: Topo com vaga direta na SF1, Embaixo Playoff QF1 levando à SF2 -->
+                <div class="bracket-direct-pass-slot">
+                  <div class="bracket-direct-badge">
+                    <span class="badge-icon">⚡</span>
+                    <span class="badge-text">Vaga Direta na Semifinal 1</span>
+                  </div>
+                  <div class="bracket-straight-lead-line"></div>
+                </div>
+
+                <div class="bracket-pairing-block single-match-block single-qf-bottom">
+                  <div class="bracket-pairing-matches">
+                    ${buildBracketNodeHtml(qf1, fmt)}
+                  </div>
+                  <svg class="bracket-pairing-fork-svg single-lead-svg" viewBox="0 0 80 80" preserveAspectRatio="none">
+                    <path d="M0,40 L80,40" fill="none" stroke="rgba(255,255,255,0.45)" stroke-width="2" stroke-linecap="round" />
+                  </svg>
+                </div>
+              `}
             </div>
           </div>
         ` : ''}
@@ -2603,7 +3074,7 @@ function renderKnockoutView() {
               </div>
               <div class="fifa-trophy-badge">
                 <span class="fifa-26-bold">26</span>
-                <span class="fifa-trophy-sub">FIFA WORLD CUP</span>
+                <span class="fifa-trophy-sub">DOMUM WORLD CUP</span>
               </div>
             </div>
           </div>
@@ -3558,42 +4029,30 @@ function resetAllTournamentScores({ resetLeague = true, resetKnockout = true, cl
       const hasQuarters = knockoutState.ties.some(t => t.id && t.id.startsWith('qf'));
 
       knockoutState.ties.forEach(t => {
-        const isByeHome = t.home && t.home.startsWith('BYE');
-        const isByeAway = t.away && t.away.startsWith('BYE');
-
-        if (t.stageId === 'quarter') {
-          t.leg1Home = isByeAway ? 1 : null;
-          t.leg1Away = isByeHome ? 1 : null;
-          t.leg2Home = (isByeAway || isByeHome) ? 0 : null;
-          t.leg2Away = (isByeAway || isByeHome) ? 0 : null;
-        } else {
-          t.leg1Home = null;
-          t.leg1Away = null;
-          t.leg2Home = null;
-          t.leg2Away = null;
-
-          if (t.stageId === 'semi') {
-            if (hasQuarters) {
-              if (t.id === 'sf1') {
-                t.home = 'Vencedor Quartas 1';
-                t.away = 'Vencedor Quartas 2';
-              } else if (t.id === 'sf2') {
-                t.home = 'Vencedor Quartas 3';
-                t.away = 'Vencedor Quartas 4';
-              }
-            }
-          } else if (t.stageId === 'third') {
-            t.home = 'Perdedor Semifinal 1';
-            t.away = 'Perdedor Semifinal 2';
-          } else if (t.stageId === 'final') {
-            t.home = 'Vencedor Semifinal 1';
-            t.away = 'Vencedor Semifinal 2';
-          }
-        }
+        t.leg1Home = null;
+        t.leg1Away = null;
+        t.leg2Home = null;
+        t.leg2Away = null;
         t.penHome = null;
         t.penAway = null;
         t.penaltyWinner = null;
         t.showPenalties = false;
+
+        if (t.stageId === 'semi') {
+          if (t.id === 'sf1') {
+            if (t.home && t.home.startsWith('Vencedor')) t.home = 'Vencedor Quartas 1';
+            if (t.away && t.away.startsWith('Vencedor')) t.away = 'Vencedor Quartas 2';
+          } else if (t.id === 'sf2') {
+            if (t.home && t.home.startsWith('Vencedor')) t.home = 'Vencedor Quartas 3';
+            if (t.away && t.away.startsWith('Vencedor')) t.away = (knockoutState.ties.some(q => q.id === 'qf3')) ? 'Vencedor Quartas 4' : 'Vencedor Quartas';
+          }
+        } else if (t.stageId === 'third') {
+          t.home = 'Perdedor Semifinal 1';
+          t.away = 'Perdedor Semifinal 2';
+        } else if (t.stageId === 'final') {
+          if (t.home && t.home.startsWith('Vencedor')) t.home = 'Vencedor Semifinal 1';
+          if (t.away && t.away.startsWith('Vencedor')) t.away = 'Vencedor Semifinal 2';
+        }
       });
 
       propagateKnockoutBracket();

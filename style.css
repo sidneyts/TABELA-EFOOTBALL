@@ -2810,6 +2810,50 @@ body {
   align-items: center;
 }
 
+/* Bloco de Confronto Único e Indicadores de Passagem Direta */
+.bracket-pairing-block.single-match-block {
+  min-height: 80px;
+}
+
+.bracket-pairing-fork-svg.single-lead-svg {
+  width: 80px;
+  height: 80px;
+}
+
+.bracket-direct-pass-slot {
+  display: flex;
+  align-items: center;
+  min-height: 80px;
+}
+
+.bracket-direct-badge {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(0, 240, 255, 0.08);
+  border: 1px dashed rgba(0, 240, 255, 0.35);
+  border-radius: 999px;
+  padding: 6px 14px;
+  font-size: 0.76rem;
+  font-weight: 700;
+  color: #38bdf8;
+  letter-spacing: 0.3px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.bracket-direct-badge .badge-icon {
+  font-size: 0.88rem;
+  filter: drop-shadow(0 0 6px #38bdf8);
+}
+
+.bracket-straight-lead-line {
+  flex: 1;
+  min-width: 50px;
+  height: 2px;
+  background: linear-gradient(90deg, rgba(0, 240, 255, 0.4), rgba(255, 255, 255, 0.35));
+  margin-left: 10px;
+}
+
 /* Linha de conexão da Grande Final para o Campeão */
 .bracket-final-card-row {
   display: flex;
