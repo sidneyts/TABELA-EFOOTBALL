@@ -2599,50 +2599,64 @@ body {
   margin-top: 20px;
 }
 
-.pitch-bracket-arena {
+/* ==========================================================================
+   Mata-Mata Estilo Pôster Oficial Copa do Mundo FIFA 2026
+   ========================================================================== */
+.pitch-bracket-arena.fifa-bracket-arena {
   position: relative;
-  border-radius: 22px;
-  padding: 36px 24px;
+  border-radius: 24px;
+  padding: 34px 20px 45px;
   background:
-    radial-gradient(circle at 50% 50%, rgba(34, 197, 94, 0.18) 0%, rgba(5, 46, 22, 0.65) 100%),
-    repeating-linear-gradient(
-      90deg,
-      #0c591e 0px,
-      #0c591e 68px,
-      #116a26 68px,
-      #116a26 136px
-    );
-  border: 3px solid rgba(255, 255, 255, 0.35);
+    radial-gradient(ellipse 70% 60% at 50% 35%, rgba(30, 42, 68, 0.65) 0%, rgba(11, 14, 22, 0.98) 70%, #06080d 100%);
+  border: 1px solid rgba(255, 255, 255, 0.12);
   box-shadow:
-    inset 0 0 70px rgba(0, 0, 0, 0.55),
-    0 16px 40px rgba(0, 0, 0, 0.5);
+    inset 0 0 100px rgba(0, 0, 0, 0.8),
+    0 24px 60px rgba(0, 0, 0, 0.7);
   overflow-x: auto;
 }
 
-/* Linha central do gramado e Círculo Central (igual à referência) */
-.pitch-center-line {
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  left: 50%;
-  width: 2px;
-  background: rgba(255, 255, 255, 0.24);
-  transform: translateX(-50%);
-  pointer-events: none;
-  z-index: 1;
+/* Cabeçalho do Pôster Oficial da Copa */
+.fifa-poster-header {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 26px;
+  text-align: center;
+  user-select: none;
 }
 
-.pitch-center-circle {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  width: 310px;
-  height: 310px;
-  border: 2px solid rgba(255, 255, 255, 0.24);
-  border-radius: 50%;
-  transform: translate(-50%, -50%);
-  pointer-events: none;
-  z-index: 1;
+.fifa-poster-badge {
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 2px;
+  color: var(--accent-gold);
+  text-transform: uppercase;
+  background: rgba(234, 179, 8, 0.12);
+  border: 1px solid rgba(234, 179, 8, 0.3);
+  padding: 4px 14px;
+  border-radius: 99px;
+  margin-bottom: 8px;
+}
+
+.fifa-poster-title {
+  font-family: var(--font-display);
+  font-size: 3.2rem;
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: 2.5px;
+  color: #ffffff;
+  text-transform: uppercase;
+  margin: 0;
+  text-shadow: 0 4px 20px rgba(0, 0, 0, 0.9), 0 0 30px rgba(255, 255, 255, 0.15);
+}
+
+.fifa-poster-subtitle {
+  font-size: 0.82rem;
+  color: var(--text-muted);
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  margin-top: 5px;
 }
 
 .pitch-bracket-tree {
@@ -2650,218 +2664,285 @@ body {
   z-index: 2;
   display: flex;
   align-items: center;
-  justify-content: center;
-  min-width: 960px;
+  justify-content: flex-start;
+  min-width: 1250px;
   gap: 0;
+  padding: 10px 20px 30px;
+  overflow-x: auto;
 }
 
-.bracket-wing {
+.pitch-bracket-tree.ltr-tree {
   display: flex;
+  flex-direction: row;
   align-items: center;
-  flex: 1;
-}
-
-.bracket-wing.wing-left {
-  justify-content: flex-end;
-}
-
-.bracket-wing.wing-right {
   justify-content: flex-start;
 }
 
-.bracket-col {
+.bracket-col.ltr-col {
   display: flex;
   flex-direction: column;
   justify-content: center;
-  gap: 28px;
-}
-
-/* Linhas de Conexão do Mata-Mata (Estilo Chaveamento de Copa) */
-.bracket-connector-line {
-  width: 34px;
-  height: 3px;
-  background: rgba(255, 255, 255, 0.88);
-  box-shadow: 0 0 8px rgba(255, 255, 255, 0.35);
-  flex-shrink: 0;
-}
-
-.bracket-connector-fork {
-  width: 32px;
-  height: 220px;
   position: relative;
-  flex-shrink: 0;
 }
 
-.bracket-connector-fork.fork-left::before {
-  content: '';
-  position: absolute;
-  top: 22%;
-  bottom: 22%;
-  left: 0;
-  width: 55%;
-  border-top: 3px solid rgba(255, 255, 255, 0.88);
-  border-bottom: 3px solid rgba(255, 255, 255, 0.88);
-  border-right: 3px solid rgba(255, 255, 255, 0.88);
-  border-top-right-radius: 8px;
-  border-bottom-right-radius: 8px;
+.bracket-col.col-quarter {
+  min-width: 330px;
 }
 
-.bracket-connector-fork.fork-left::after {
-  content: '';
-  position: absolute;
-  top: 50%;
-  right: 0;
-  width: 45%;
-  height: 3px;
-  background: rgba(255, 255, 255, 0.88);
-  transform: translateY(-50%);
+.bracket-col.col-semi {
+  min-width: 340px;
 }
 
-.bracket-connector-fork.fork-right::before {
-  content: '';
-  position: absolute;
-  top: 22%;
-  bottom: 22%;
-  right: 0;
-  width: 55%;
-  border-top: 3px solid rgba(255, 255, 255, 0.88);
-  border-bottom: 3px solid rgba(255, 255, 255, 0.88);
-  border-left: 3px solid rgba(255, 255, 255, 0.88);
-  border-top-left-radius: 8px;
-  border-bottom-left-radius: 8px;
+.bracket-col.col-finals {
+  min-width: 360px;
 }
 
-.bracket-connector-fork.fork-right::after {
-  content: '';
-  position: absolute;
-  top: 50%;
-  left: 0;
-  width: 45%;
-  height: 3px;
-  background: rgba(255, 255, 255, 0.88);
-  transform: translateY(-50%);
+.bracket-col.col-champion {
+  min-width: 240px;
+  padding-left: 20px;
 }
 
-/* Hub Central: Grande Final no centro + Disputa de 3º Lugar abaixo */
-.bracket-center-hub {
+.bracket-stage-content {
   display: flex;
   flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  position: relative;
-  padding: 10px 0;
+  justify-content: space-around;
+  gap: 32px;
+  width: 100%;
+}
+
+.finals-content {
+  gap: 36px;
 }
 
 .bracket-stage-heading {
   font-family: var(--font-body);
-  font-size: 1.05rem;
+  font-size: 0.96rem;
   font-weight: 800;
   color: #ffffff;
   text-align: center;
-  margin-bottom: 8px;
-  text-shadow: 0 2px 6px rgba(0, 0, 0, 0.65);
-  letter-spacing: 0.4px;
+  margin-bottom: 16px;
+  text-shadow: 0 2px 6px rgba(0, 0, 0, 0.8);
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
 }
 
 .bracket-stage-heading.final-heading {
-  font-size: 1.35rem;
-  color: #ffffff;
+  font-size: 1.15rem;
+  color: #fde047;
+  margin-bottom: 12px;
+}
+
+.bracket-stage-heading.bronze-heading {
+  font-size: 0.92rem;
+  color: #f59e0b;
+  margin-bottom: 10px;
 }
 
 .bracket-stage-subtag {
   display: block;
-  font-size: 0.68rem;
+  font-size: 0.65rem;
   font-weight: 700;
   text-transform: uppercase;
-  color: #bbf7d0;
+  color: var(--text-muted);
   letter-spacing: 0.6px;
+  margin-top: 2px;
 }
 
-/* Card de Confronto na Chave (Visual Branco com Borda Dupla Verde/Branca igual à imagem) */
-.bracket-node-card {
-  background: #ffffff;
-  color: #0f172a;
-  border: 3px solid #14532d;
-  outline: 2px solid rgba(255, 255, 255, 0.92);
-  border-radius: 18px;
-  padding: 12px 14px;
-  min-width: 280px;
-  max-width: 340px;
-  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.45);
+/* ==========================================================================
+   Blocos de Emparelhamento com Linhas Conectoras Longas (Left-to-Right)
+   ========================================================================== */
+.bracket-pairing-block {
+  display: flex;
+  align-items: center;
+  position: relative;
+}
+
+.bracket-pairing-matches {
   display: flex;
   flex-direction: column;
+  gap: 34px;
+}
+
+/* Linha conectora em bifurcação (Garfo longo) da esquerda para a direita */
+.bracket-pairing-fork {
+  width: 75px;
+  height: calc(100% - 40px);
+  position: relative;
+  flex-shrink: 0;
+  margin-left: 10px;
+}
+
+.bracket-pairing-fork::before {
+  content: '';
+  position: absolute;
+  top: 22%;
+  bottom: 22%;
+  left: 0;
+  width: 50%;
+  border-top: 2px solid rgba(255, 255, 255, 0.45);
+  border-bottom: 2px solid rgba(255, 255, 255, 0.45);
+  border-right: 2px solid rgba(255, 255, 255, 0.45);
+  border-top-right-radius: 10px;
+  border-bottom-right-radius: 10px;
+  box-shadow: 1px 0 6px rgba(255, 255, 255, 0.12);
+}
+
+.bracket-pairing-fork::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  right: 0;
+  height: 2px;
+  background: rgba(255, 255, 255, 0.45);
+  transform: translateY(-50%);
+  box-shadow: 0 0 6px rgba(255, 255, 255, 0.12);
+}
+
+/* Semifinais com linhas ainda mais amplas convergindo na Grande Final */
+.bracket-pairing-block.semi-block {
+  width: 100%;
+}
+
+.bracket-pairing-matches.semi-matches {
+  gap: 140px;
+}
+
+.bracket-semi-slot {
+  display: flex;
+  align-items: center;
+}
+
+.bracket-pairing-fork.semi-fork {
+  width: 85px;
+  height: calc(100% - 48px);
+}
+
+.bracket-pairing-fork.semi-fork::before {
+  top: 18%;
+  bottom: 18%;
+  width: 52%;
+}
+
+/* Linha de conexão da Grande Final para o Campeão */
+.bracket-final-card-row {
+  display: flex;
+  align-items: center;
+}
+
+.bracket-final-lead-line {
+  width: 70px;
+  height: 2px;
+  background: linear-gradient(90deg, rgba(234, 179, 8, 0.8), #fde047);
+  box-shadow: 0 0 8px rgba(234, 179, 8, 0.5);
+  margin-left: 12px;
+  flex-shrink: 0;
+}
+
+.bracket-final-wrap {
+  display: flex;
+  flex-direction: column;
+}
+
+.bracket-third-wrap {
+  display: flex;
+  flex-direction: column;
+  opacity: 0.92;
+}
+
+/* ==========================================================================
+   Design Minimalista do Confronto (Nó com Cápsulas Individuais + X + Placares)
+   ========================================================================== */
+.bracket-match-node {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  position: relative;
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  padding: 2px 0;
+  user-select: none;
+}
+
+.bracket-player-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+/* 1. Cápsula arredondada individual para cada jogador */
+.bracket-player-capsule {
+  display: flex;
+  align-items: center;
   gap: 8px;
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  width: 175px;
+  padding: 4px 12px 4px 5px;
+  background: #1b212f;
+  border: 1.5px solid rgba(255, 255, 255, 0.16);
+  border-radius: 999px;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.55);
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  position: relative;
 }
 
-.bracket-node-card.final-node-card {
-  min-width: 310px;
-  max-width: 370px;
-  border-color: #ca8a04;
-  outline-color: #fde047;
-  box-shadow: 0 0 28px rgba(250, 204, 21, 0.4), 0 14px 32px rgba(0, 0, 0, 0.55);
+.bracket-player-capsule:hover {
+  border-color: rgba(0, 240, 255, 0.5);
+  background: #222b3d;
+  transform: translateX(2px);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.65), 0 0 12px rgba(0, 240, 255, 0.2);
 }
 
-.bracket-node-card.third-node-card {
-  min-width: 270px;
-  max-width: 330px;
-  opacity: 0.96;
+.bracket-player-capsule.capsule-winner {
+  border-color: #22c55e;
+  background: linear-gradient(90deg, #123321 0%, #1b2838 100%);
+  box-shadow: 0 4px 16px rgba(34, 197, 94, 0.3);
 }
 
-.bracket-third-Place-section {
-  margin-top: 28px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
+.bracket-player-capsule.capsule-winner .bracket-player-name {
+  color: #4ade80;
+  font-weight: 800;
 }
 
-/* Linha de Cada Competidor dentro do Card da Chave */
-.bracket-team-slot {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-  padding: 5px 6px;
-  border-radius: 10px;
-  transition: background 0.2s;
+.bracket-player-capsule.capsule-loser {
+  opacity: 0.48;
+  filter: grayscale(40%);
 }
 
-.bracket-team-slot.slot-is-winner {
-  background: rgba(22, 163, 74, 0.14);
+.final-node-capsule .bracket-player-capsule {
+  border-color: rgba(234, 179, 8, 0.4);
+  background: #201b13;
 }
 
-.bracket-slot-divider {
-  height: 1px;
-  background: #cbd5e1;
-  margin: 0 6px;
+.final-node-capsule .bracket-player-capsule.capsule-winner {
+  border-color: #fde047;
+  background: linear-gradient(90deg, #3d2c0b 0%, #201b13 100%);
+  box-shadow: 0 0 20px rgba(253, 224, 71, 0.35);
 }
 
-.bracket-player-ident {
-  display: flex;
-  align-items: center;
-  gap: 9px;
-  min-width: 0;
-  flex: 1;
+.final-node-capsule .bracket-player-capsule.capsule-winner .bracket-player-name {
+  color: #fde047;
 }
 
+/* Avatar Squircle/Círculo dentro da Cápsula */
 .bracket-avatar-circle {
-  width: 38px;
-  height: 38px;
+  width: 32px;
+  height: 32px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #15803d, #14532d);
-  border: 2px solid #166534;
+  background: #0d121c;
+  border: 1.5px solid rgba(255, 255, 255, 0.22);
   color: #ffffff;
   display: flex;
   align-items: center;
   justify-content: center;
   font-family: var(--font-display);
-  font-size: 1.15rem;
+  font-size: 0.98rem;
   font-weight: 700;
   flex-shrink: 0;
   overflow: hidden;
   position: relative;
   cursor: pointer;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
 }
 
 .bracket-avatar-circle img {
@@ -2870,168 +2951,296 @@ body {
   object-fit: cover;
 }
 
-.bracket-avatar-circle:hover::after {
-  content: '📷';
-  position: absolute;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.55);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 0.85rem;
+.avatar-question-mark {
+  color: #94a3b8;
+  font-family: var(--font-display);
+  font-size: 1.15rem;
+  font-weight: 800;
 }
 
 .bracket-player-name {
-  font-size: 0.92rem;
-  font-weight: 800;
-  color: #0f172a;
+  font-size: 0.84rem;
+  font-weight: 700;
+  color: #f1f5f9;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  letter-spacing: 0.3px;
 }
 
-.slot-is-winner .bracket-player-name {
-  color: #15803d;
+/* 2. Marcação de Confronto "X" Centralizado */
+.bracket-vs-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 175px;
+  padding: 2px 0;
 }
 
-/* Modos de Visualização: Só Fotos | Só Nomes | Foto + Nome */
+.bracket-vs-x {
+  font-family: var(--font-display);
+  font-size: 1.05rem;
+  font-weight: 900;
+  color: #64748b;
+  line-height: 1;
+  letter-spacing: 0.5px;
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.8);
+}
+
+/* 3. Bloco de Placar à Direita: Dois Placares Empilhados + Soma ao Lado */
+.bracket-score-block {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.ko-legs-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.ko-mini-score-input {
+  width: 24px;
+  height: 17px;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.08);
+  font-family: var(--font-display);
+  font-size: 0.82rem;
+  font-weight: 800;
+  color: #ffffff;
+  text-align: center;
+  outline: none;
+  padding: 0;
+  transition: all 0.18s ease;
+  -moz-appearance: textfield;
+}
+
+.ko-mini-score-input::-webkit-outer-spin-button,
+.ko-mini-score-input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.ko-mini-score-input:hover,
+.ko-mini-score-input:focus {
+  background: rgba(0, 240, 255, 0.18);
+  border-color: var(--accent-cyan);
+  box-shadow: 0 0 8px rgba(0, 240, 255, 0.35);
+}
+
+/* O número da SOMA dos dois jogos em destaque ao lado */
+.ko-sum-total {
+  font-family: var(--font-display);
+  font-size: 1.65rem;
+  font-weight: 900;
+  line-height: 1;
+  color: #ffffff;
+  min-width: 26px;
+  text-align: center;
+  letter-spacing: -0.5px;
+  text-shadow: 0 2px 6px rgba(0, 0, 0, 0.7);
+}
+
+.ko-sum-total.sum-winner {
+  color: #4ade80;
+  text-shadow: 0 0 12px rgba(74, 222, 128, 0.45);
+}
+
+/* Placar de Jogo Único (Grande Final e 3º Lugar) */
+.ko-single-score-input {
+  width: 32px;
+  height: 32px;
+  border: 1.5px solid rgba(255, 255, 255, 0.25);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.08);
+  font-family: var(--font-display);
+  font-size: 1.4rem;
+  font-weight: 800;
+  color: #ffffff;
+  text-align: center;
+  outline: none;
+  transition: all 0.18s ease;
+  -moz-appearance: textfield;
+}
+
+.ko-single-score-input::-webkit-outer-spin-button,
+.ko-single-score-input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.ko-single-score-input:hover,
+.ko-single-score-input:focus {
+  border-color: #fde047;
+  background: rgba(234, 179, 8, 0.15);
+  box-shadow: 0 0 10px rgba(253, 224, 71, 0.35);
+}
+
+.ko-single-score-input.sum-winner {
+  color: #fde047;
+  border-color: #fde047;
+  box-shadow: 0 0 12px rgba(253, 224, 71, 0.4);
+}
+
+/* Barra de Pênaltis Discreta */
+.bracket-penalties-mini-bar {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin-top: 5px;
+  background: rgba(245, 158, 11, 0.12);
+  border: 1px solid rgba(245, 158, 11, 0.4);
+  border-radius: 999px;
+  padding: 2px 8px;
+  font-size: 0.72rem;
+}
+
+.pen-mini-label {
+  font-weight: 800;
+  color: #f59e0b;
+}
+
+.ko-pen-mini-input {
+  width: 20px;
+  height: 18px;
+  border: 1px solid #f59e0b;
+  border-radius: 4px;
+  background: #1c1508;
+  color: #fef08a;
+  font-family: var(--font-display);
+  font-size: 0.8rem;
+  font-weight: 800;
+  text-align: center;
+  outline: none;
+  padding: 0;
+  -moz-appearance: textfield;
+}
+
+.ko-pen-mini-input::-webkit-outer-spin-button,
+.ko-pen-mini-input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.pen-mini-x {
+  color: #f59e0b;
+  font-weight: 800;
+}
+
+.btn-clear-pen-mini {
+  background: transparent;
+  border: none;
+  color: #f87171;
+  font-size: 0.75rem;
+  font-weight: 800;
+  cursor: pointer;
+  padding: 0 2px;
+}
+
+.btn-trigger-pen-mini {
+  background: transparent;
+  border: none;
+  color: #f59e0b;
+  font-weight: 800;
+  font-size: 0.72rem;
+  cursor: pointer;
+  text-decoration: underline;
+}
+
+/* Modos de Exibição no Mata-Mata */
 .display-mode-photo_only .bracket-player-name {
   display: none;
 }
 
-.display-mode-photo_only .bracket-avatar-circle {
-  width: 54px;
-  height: 54px;
-  font-size: 1.45rem;
-  border-width: 3px;
+.display-mode-photo_only .bracket-player-capsule {
+  width: auto;
+  padding: 3px;
+  border-radius: 50%;
 }
 
-.display-mode-photo_only .bracket-node-card {
-  min-width: 235px;
+.display-mode-photo_only .bracket-avatar-circle {
+  width: 44px;
+  height: 44px;
+}
+
+.display-mode-photo_only .bracket-vs-row {
+  width: 48px;
 }
 
 .display-mode-name_only .bracket-avatar-circle {
   display: none;
 }
 
-/* Controles de Placar Compactos dentro do Card de Chaveamento */
-.bracket-slot-scores {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  flex-shrink: 0;
+.display-mode-name_only .bracket-player-capsule {
+  padding: 6px 14px;
 }
 
-.pitch-score-group {
+/* Showcase do Troféu Dourado 3D */
+.fifa-trophy-showcase {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 1px;
-}
-
-.pitch-leg-tag {
-  font-size: 0.58rem;
-  font-weight: 800;
-  text-transform: uppercase;
-  color: #64748b;
-  letter-spacing: 0.3px;
-}
-
-.pitch-leg-tag.pen-tag {
-  color: #b45309;
-}
-
-.pitch-score-stepper {
-  display: inline-flex;
-  align-items: center;
-  background: #f1f5f9;
-  border: 1px solid #cbd5e1;
-  border-radius: 7px;
-  padding: 1px;
-}
-
-.pitch-score-stepper.pen-stepper {
-  background: #fef3c7;
-  border-color: #f59e0b;
-}
-
-.pitch-step-btn {
-  width: 20px;
-  height: 24px;
-  border: none;
-  background: transparent;
-  color: #334155;
-  font-size: 0.85rem;
-  font-weight: 800;
-  cursor: pointer;
-  border-radius: 5px;
-  display: flex;
-  align-items: center;
   justify-content: center;
-  padding: 0;
+  margin-top: 24px;
+  position: relative;
+  user-select: none;
 }
 
-.pitch-step-btn:hover {
-  background: #e2e8f0;
-  color: #0f172a;
+.fifa-trophy-glow {
+  position: absolute;
+  width: 130px;
+  height: 130px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(234, 179, 8, 0.28) 0%, transparent 70%);
+  filter: blur(18px);
+  pointer-events: none;
 }
 
-.pitch-score-input {
-  width: 26px;
-  height: 24px;
-  border: none;
-  background: transparent;
-  text-align: center;
-  font-family: var(--font-display);
-  font-size: 1.15rem;
-  font-weight: 700;
-  color: #0f172a;
-  outline: none;
-  -moz-appearance: textfield;
+.fifa-trophy-img-wrap {
+  position: relative;
+  z-index: 2;
+  transition: transform 0.3s ease;
 }
 
-.pitch-score-input::-webkit-outer-spin-button,
-.pitch-score-input::-webkit-inner-spin-button {
-  -webkit-appearance: none;
-  margin: 0;
+.fifa-trophy-img-wrap:hover {
+  transform: scale(1.08) translateY(-4px);
 }
 
-.bracket-node-footer {
+.fifa-trophy-svg {
+  width: 74px;
+  height: 104px;
+  filter: drop-shadow(0 8px 18px rgba(0, 0, 0, 0.9));
+}
+
+.fifa-trophy-badge {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 6px;
-  padding-top: 6px;
-  border-top: 1px dashed #e2e8f0;
-  font-size: 0.72rem;
-  font-weight: 700;
-  color: #475569;
-  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 8px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  padding: 4px 12px;
+  border-radius: 99px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
 }
 
-.bracket-node-footer .winner-pill {
-  color: #15803d;
+.fifa-26-bold {
+  font-family: var(--font-display);
+  font-size: 1.4rem;
   font-weight: 800;
+  color: #fde047;
+  line-height: 1;
 }
 
-.bracket-node-footer .draw-alert-pill {
-  color: #b45309;
-  font-weight: 800;
-}
-
-.btn-pitch-penalties {
-  background: #fef3c7;
-  border: 1px solid #f59e0b;
-  color: #92400e;
+.fifa-trophy-sub {
   font-size: 0.68rem;
   font-weight: 800;
-  padding: 2px 7px;
-  border-radius: 99px;
-  cursor: pointer;
-}
-
-.btn-pitch-penalties:hover {
-  background: #fde68a;
+  color: #ffffff;
+  letter-spacing: 1.2px;
+  text-transform: uppercase;
 }
 
 /* ==========================================================================

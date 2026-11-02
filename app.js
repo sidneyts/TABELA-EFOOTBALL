@@ -671,7 +671,12 @@ function getPlayerPhotoUrl(playerName) {
 }
 
 function getPlayerAvatarInnerHtml(playerName) {
-  if (!playerName) return '?';
+  if (!playerName || isPlaceholderTeam(playerName) || playerName === 'A definir') {
+    return `<span class="avatar-question-mark">?</span>`;
+  }
+  if (playerName.startsWith('BYE')) {
+    return `<span class="avatar-bye-tag">BYE</span>`;
+  }
   const photo = getPlayerPhotoUrl(playerName);
   if (photo) {
     return `<img src="${photo}" alt="${playerName}" />`;
@@ -2147,8 +2152,14 @@ function buildBracketNodeHtml(t, fmt, extraCardClass = '') {
 
   const tieFmt = getEffectiveTieFormat(t, fmt);
   const outcome = resolveTieOutcome(t, fmt);
-  const homeWinner = outcome.winner === t.home ? 'slot-is-winner' : '';
-  const awayWinner = outcome.winner === t.away ? 'slot-is-winner' : '';
+
+  const isHomeWinner = outcome.winner && outcome.winner === t.home;
+  const isAwayWinner = outcome.winner && outcome.winner === t.away;
+  const isHomeLoser = outcome.winner && outcome.winner !== t.home;
+  const isAwayLoser = outcome.winner && outcome.winner !== t.away;
+
+  const homeCapsuleClass = isHomeWinner ? 'capsule-winner' : (isHomeLoser ? 'capsule-loser' : '');
+  const awayCapsuleClass = isAwayWinner ? 'capsule-winner' : (isAwayLoser ? 'capsule-loser' : '');
 
   const l1h = t.leg1Home !== null && t.leg1Home !== undefined ? t.leg1Home : '';
   const l1a = t.leg1Away !== null && t.leg1Away !== undefined ? t.leg1Away : '';
@@ -2156,6 +2167,21 @@ function buildBracketNodeHtml(t, fmt, extraCardClass = '') {
   const l2a = t.leg2Away !== null && t.leg2Away !== undefined ? t.leg2Away : '';
   const ph = t.penHome !== null && t.penHome !== undefined ? t.penHome : '';
   const pa = t.penAway !== null && t.penAway !== undefined ? t.penAway : '';
+
+  // Cálculo da soma (agregado) para exibição elegante ao lado dos dois placares
+  let homeSumDisplay = '-';
+  let awaySumDisplay = '-';
+  if (outcome.homeTotal !== null && outcome.homeTotal !== undefined) {
+    homeSumDisplay = outcome.homeTotal;
+  } else if (l1h !== '' || l2h !== '') {
+    homeSumDisplay = (l1h !== '' ? Number(l1h) : 0) + (l2h !== '' ? Number(l2h) : 0);
+  }
+
+  if (outcome.awayTotal !== null && outcome.awayTotal !== undefined) {
+    awaySumDisplay = outcome.awayTotal;
+  } else if (l1a !== '' || l2a !== '') {
+    awaySumDisplay = (l1a !== '' ? Number(l1a) : 0) + (l2a !== '' ? Number(l2a) : 0);
+  }
 
   const isRealTeams = !isPlaceholderTeam(t.home) && !isPlaceholderTeam(t.away) && !t.home.startsWith('BYE') && !t.away.startsWith('BYE');
   const showPenaltyCols = isRealTeams && (
@@ -2169,169 +2195,165 @@ function buildBracketNodeHtml(t, fmt, extraCardClass = '') {
   const homeAvatar = getPlayerAvatarInnerHtml(t.home);
   const awayAvatar = getPlayerAvatarInnerHtml(t.away);
 
-  let footerStatus = `<span>• ${t.label}</span>`;
-  if (outcome.winner) {
-    const winLabel = t.stageId === 'final' ? '🏆 Campeão' : t.stageId === 'third' ? '🥉 3º Lugar' : '✓ Avança';
-    footerStatus = `<span class="winner-pill">${winLabel}: ${outcome.winner}</span>`;
-  } else if (outcome.isDrawPending) {
-    footerStatus = `<span class="draw-alert-pill">⚠️ Empate! Preencha os Pênaltis</span>`;
-  }
-
-  const aggInfo = (tieFmt === 'two_legs' && outcome.homeTotal !== null)
-    ? `<span>Agregado: ${outcome.homeTotal}×${outcome.awayTotal}</span>`
-    : '';
-
   return `
-    <div class="bracket-node-card ${extraCardClass}">
-      <!-- Competidor 1 (Casa / Topo) -->
-      <div class="bracket-team-slot ${homeWinner}" data-player-name="${t.home}" title="Clique com o botão direito para opções de ${t.home}">
-        <div class="bracket-player-ident" title="${t.home} (Clique na foto para enviar/trocar)">
-          <div class="bracket-avatar-circle" onclick="triggerPlayerPhotoUpload('${t.home}')">
+    <div class="bracket-match-node ${extraCardClass}" data-tie-id="${t.id}">
+      <!-- Linha do Jogador 1 (Cápsula + Placar(es) + Soma) -->
+      <div class="bracket-player-row">
+        <div
+          class="bracket-player-capsule ${homeCapsuleClass}"
+          data-player-name="${t.home}"
+          title="Clique com o botão direito para opções de ${t.home}"
+        >
+          <div class="bracket-avatar-circle" onclick="triggerPlayerPhotoUpload('${t.home}')" title="Clique para trocar foto de ${t.home}">
             ${homeAvatar}
           </div>
           <span class="bracket-player-name">${t.home}</span>
         </div>
 
-        <div class="bracket-slot-scores">
-          <div class="pitch-score-group">
-            <span class="pitch-leg-tag">${tieFmt === 'two_legs' ? '1º Jogo' : 'Placar'}</span>
-            <div class="pitch-score-stepper">
-              <button type="button" class="pitch-step-btn" onclick="adjustKnockoutScore('${t.id}', 'leg1Home', -1)">−</button>
+        <div class="bracket-score-block">
+          ${tieFmt === 'two_legs' ? `
+            <div class="ko-legs-stack">
               <input
                 type="number"
                 min="0"
                 max="99"
-                class="pitch-score-input ko-score-input"
+                class="ko-score-input ko-mini-score-input"
                 data-tie-id="${t.id}"
                 data-field="leg1Home"
                 placeholder="-"
                 value="${l1h}"
+                title="1º Jogo: ${t.home}"
               />
-              <button type="button" class="pitch-step-btn" onclick="adjustKnockoutScore('${t.id}', 'leg1Home', 1)">+</button>
+              <input
+                type="number"
+                min="0"
+                max="99"
+                class="ko-score-input ko-mini-score-input"
+                data-tie-id="${t.id}"
+                data-field="leg2Home"
+                placeholder="-"
+                value="${l2h}"
+                title="2º Jogo: ${t.home}"
+              />
             </div>
-          </div>
-
-          ${tieFmt === 'two_legs' ? `
-            <div class="pitch-score-group">
-              <span class="pitch-leg-tag">2º Jogo</span>
-              <div class="pitch-score-stepper">
-                <button type="button" class="pitch-step-btn" onclick="adjustKnockoutScore('${t.id}', 'leg2Home', -1)">−</button>
-                <input
-                  type="number"
-                  min="0"
-                  max="99"
-                  class="pitch-score-input ko-score-input"
-                  data-tie-id="${t.id}"
-                  data-field="leg2Home"
-                  placeholder="-"
-                  value="${l2h}"
-                />
-                <button type="button" class="pitch-step-btn" onclick="adjustKnockoutScore('${t.id}', 'leg2Home', 1)">+</button>
-              </div>
+            <div class="ko-sum-total ${isHomeWinner ? 'sum-winner' : ''}" title="Soma dos dois jogos: ${homeSumDisplay}">
+              ${homeSumDisplay}
             </div>
-          ` : ''}
-
-          ${showPenaltyCols ? `
-            <div class="pitch-score-group">
-              <span class="pitch-leg-tag pen-tag">Pênaltis</span>
-              <div class="pitch-score-stepper pen-stepper">
-                <button type="button" class="pitch-step-btn" onclick="adjustKnockoutScore('${t.id}', 'penHome', -1)">−</button>
-                <input
-                  type="number"
-                  min="0"
-                  max="99"
-                  class="pitch-score-input ko-score-input"
-                  data-tie-id="${t.id}"
-                  data-field="penHome"
-                  placeholder="P"
-                  value="${ph}"
-                />
-                <button type="button" class="pitch-step-btn" onclick="adjustKnockoutScore('${t.id}', 'penHome', 1)">+</button>
-              </div>
-            </div>
-          ` : ''}
+          ` : `
+            <input
+              type="number"
+              min="0"
+              max="99"
+              class="ko-score-input ko-single-score-input ${isHomeWinner ? 'sum-winner' : ''}"
+              data-tie-id="${t.id}"
+              data-field="leg1Home"
+              placeholder="-"
+              value="${l1h}"
+              title="Placar da Partida: ${t.home}"
+            />
+          `}
         </div>
       </div>
 
-      <div class="bracket-slot-divider"></div>
+      <!-- X no meio dos dois jogadores (marcação de confronto minimalista) -->
+      <div class="bracket-vs-row">
+        <span class="bracket-vs-x">X</span>
+      </div>
 
-      <!-- Competidor 2 (Visitante / Baixo) -->
-      <div class="bracket-team-slot ${awayWinner}" data-player-name="${t.away}" title="Clique com o botão direito para opções de ${t.away}">
-        <div class="bracket-player-ident" title="${t.away} (Clique na foto para enviar/trocar)">
-          <div class="bracket-avatar-circle" onclick="triggerPlayerPhotoUpload('${t.away}')">
+      <!-- Linha do Jogador 2 (Cápsula + Placar(es) + Soma) -->
+      <div class="bracket-player-row">
+        <div
+          class="bracket-player-capsule ${awayCapsuleClass}"
+          data-player-name="${t.away}"
+          title="Clique com o botão direito para opções de ${t.away}"
+        >
+          <div class="bracket-avatar-circle" onclick="triggerPlayerPhotoUpload('${t.away}')" title="Clique para trocar foto de ${t.away}">
             ${awayAvatar}
           </div>
           <span class="bracket-player-name">${t.away}</span>
         </div>
 
-        <div class="bracket-slot-scores">
-          <div class="pitch-score-group">
-            <div class="pitch-score-stepper">
-              <button type="button" class="pitch-step-btn" onclick="adjustKnockoutScore('${t.id}', 'leg1Away', -1)">−</button>
+        <div class="bracket-score-block">
+          ${tieFmt === 'two_legs' ? `
+            <div class="ko-legs-stack">
               <input
                 type="number"
                 min="0"
                 max="99"
-                class="pitch-score-input ko-score-input"
+                class="ko-score-input ko-mini-score-input"
                 data-tie-id="${t.id}"
                 data-field="leg1Away"
                 placeholder="-"
                 value="${l1a}"
+                title="1º Jogo: ${t.away}"
               />
-              <button type="button" class="pitch-step-btn" onclick="adjustKnockoutScore('${t.id}', 'leg1Away', 1)">+</button>
+              <input
+                type="number"
+                min="0"
+                max="99"
+                class="ko-score-input ko-mini-score-input"
+                data-tie-id="${t.id}"
+                data-field="leg2Away"
+                placeholder="-"
+                value="${l2a}"
+                title="2º Jogo: ${t.away}"
+              />
             </div>
-          </div>
-
-          ${tieFmt === 'two_legs' ? `
-            <div class="pitch-score-group">
-              <div class="pitch-score-stepper">
-                <button type="button" class="pitch-step-btn" onclick="adjustKnockoutScore('${t.id}', 'leg2Away', -1)">−</button>
-                <input
-                  type="number"
-                  min="0"
-                  max="99"
-                  class="pitch-score-input ko-score-input"
-                  data-tie-id="${t.id}"
-                  data-field="leg2Away"
-                  placeholder="-"
-                  value="${l2a}"
-                />
-                <button type="button" class="pitch-step-btn" onclick="adjustKnockoutScore('${t.id}', 'leg2Away', 1)">+</button>
-              </div>
+            <div class="ko-sum-total ${isAwayWinner ? 'sum-winner' : ''}" title="Soma dos dois jogos: ${awaySumDisplay}">
+              ${awaySumDisplay}
             </div>
-          ` : ''}
-
-          ${showPenaltyCols ? `
-            <div class="pitch-score-group">
-              <div class="pitch-score-stepper pen-stepper">
-                <button type="button" class="pitch-step-btn" onclick="adjustKnockoutScore('${t.id}', 'penAway', -1)">−</button>
-                <input
-                  type="number"
-                  min="0"
-                  max="99"
-                  class="pitch-score-input ko-score-input"
-                  data-tie-id="${t.id}"
-                  data-field="penAway"
-                  placeholder="P"
-                  value="${pa}"
-                />
-                <button type="button" class="pitch-step-btn" onclick="adjustKnockoutScore('${t.id}', 'penAway', 1)">+</button>
-              </div>
-            </div>
-          ` : ''}
+          ` : `
+            <input
+              type="number"
+              min="0"
+              max="99"
+              class="ko-score-input ko-single-score-input ${isAwayWinner ? 'sum-winner' : ''}"
+              data-tie-id="${t.id}"
+              data-field="leg1Away"
+              placeholder="-"
+              value="${l1a}"
+              title="Placar da Partida: ${t.away}"
+            />
+          `}
         </div>
       </div>
 
-      <div class="bracket-node-footer">
-        ${footerStatus}
-        ${aggInfo}
-        ${(isRealTeams && outcome.allLegsPlayed && !showPenaltyCols) ? `
-          <button type="button" class="btn-pitch-penalties" onclick="toggleKnockoutPenalties('${t.id}')">⚽ + Pênaltis</button>
-        ` : ''}
-        ${(showPenaltyCols && (t.penHome !== null || t.penAway !== null || t.showPenalties)) ? `
-          <button type="button" class="btn-pitch-penalties" onclick="clearKnockoutPenalties('${t.id}')">Limpar Pên.</button>
-        ` : ''}
-      </div>
+      <!-- Barra Minimalista de Pênaltis (quando houver empate no agregado ou jogo único) -->
+      ${showPenaltyCols ? `
+        <div class="bracket-penalties-mini-bar">
+          <span class="pen-mini-label">⚽ Pênaltis:</span>
+          <input
+            type="number"
+            min="0"
+            max="99"
+            class="ko-score-input ko-pen-mini-input"
+            data-tie-id="${t.id}"
+            data-field="penHome"
+            value="${ph}"
+            placeholder="P1"
+            title="Pênaltis de ${t.home}"
+          />
+          <span class="pen-mini-x">x</span>
+          <input
+            type="number"
+            min="0"
+            max="99"
+            class="ko-score-input ko-pen-mini-input"
+            data-tie-id="${t.id}"
+            data-field="penAway"
+            value="${pa}"
+            placeholder="P2"
+            title="Pênaltis de ${t.away}"
+          />
+          <button type="button" class="btn-clear-pen-mini" onclick="clearKnockoutPenalties('${t.id}')" title="Limpar Disputa de Pênaltis">✕</button>
+        </div>
+      ` : (isRealTeams && outcome.allLegsPlayed && outcome.isDrawPending) ? `
+        <div class="bracket-penalties-mini-bar alert-draw">
+          <button type="button" class="btn-trigger-pen-mini" onclick="toggleKnockoutPenalties('${t.id}')">
+            ⚠️ Empate! Preencher Pênaltis
+          </button>
+        </div>
+      ` : ''}
     </div>
   `;
 }
@@ -2410,79 +2432,154 @@ function renderKnockoutView() {
   const stageSubLabel = fmt === 'two_legs' ? 'Ida e Volta (2 Jogos)' : 'Jogo Único';
 
   container.innerHTML = `
-    <div class="pitch-bracket-arena display-mode-${displayMode}">
-      <!-- Marcações do Campo de Futebol -->
-      <div class="pitch-center-line"></div>
-      <div class="pitch-center-circle"></div>
+    <div class="pitch-bracket-arena fifa-bracket-arena display-mode-${displayMode}">
+      <!-- Cabeçalho Oficial do Pôster de Chaveamento da Copa -->
+      <div class="fifa-poster-header">
+        <div class="fifa-poster-badge">🏆 CHAVEAMENTO OFICIAL 2026</div>
+        <h2 class="fifa-poster-title">FIFA WORLD CUP 2026™</h2>
+        <div class="fifa-poster-subtitle">Mata-Mata dos Amigos • Trajetória da Esquerda para a Direita até a Glória Eterna</div>
+      </div>
 
-      <div class="pitch-bracket-tree">
-        <!-- ALA ESQUERDA DO CHAVEAMENTO (Esquerda -> Centro) -->
-        <div class="bracket-wing wing-left">
-          ${hasQuarters ? `
-            <div class="bracket-col col-quarter">
-              <div class="bracket-stage-heading">
-                Quartas A
-                <span class="bracket-stage-subtag">${stageSubLabel}</span>
-              </div>
-              ${buildBracketNodeHtml(qf1, fmt)}
-              ${buildBracketNodeHtml(qf2, fmt)}
-            </div>
-            <div class="bracket-connector-fork fork-left"></div>
-          ` : ''}
-
-          <div class="bracket-col col-semi">
+      <div class="pitch-bracket-tree ltr-tree">
+        <!-- COLUNA 1: QUARTAS DE FINAL (se houver 8 participantes) -->
+        ${hasQuarters ? `
+          <div class="bracket-col ltr-col col-quarter">
             <div class="bracket-stage-heading">
-              Semifinal 1
+              Quartas de Final
               <span class="bracket-stage-subtag">${stageSubLabel}</span>
             </div>
-            ${buildBracketNodeHtml(sf1, fmt)}
-          </div>
+            <div class="bracket-stage-content">
+              <!-- Par Superior (QF1 e QF2 que levam à Semifinal 1) -->
+              <div class="bracket-pairing-block">
+                <div class="bracket-pairing-matches">
+                  ${buildBracketNodeHtml(qf1, fmt)}
+                  ${buildBracketNodeHtml(qf2, fmt)}
+                </div>
+                <div class="bracket-pairing-fork"></div>
+              </div>
 
-          <div class="bracket-connector-line"></div>
+              <!-- Par Inferior (QF3 e QF4 que levam à Semifinal 2) -->
+              <div class="bracket-pairing-block">
+                <div class="bracket-pairing-matches">
+                  ${buildBracketNodeHtml(qf3, fmt)}
+                  ${buildBracketNodeHtml(qf4, fmt)}
+                </div>
+                <div class="bracket-pairing-fork"></div>
+              </div>
+            </div>
+          </div>
+        ` : ''}
+
+        <!-- COLUNA 2: SEMIFINAIS -->
+        <div class="bracket-col ltr-col col-semi">
+          <div class="bracket-stage-heading">
+            Semifinais
+            <span class="bracket-stage-subtag">${stageSubLabel}</span>
+          </div>
+          <div class="bracket-stage-content">
+            <div class="bracket-pairing-block semi-block">
+              <div class="bracket-pairing-matches semi-matches">
+                <div class="bracket-semi-slot">
+                  ${buildBracketNodeHtml(sf1, fmt)}
+                </div>
+                <div class="bracket-semi-slot">
+                  ${buildBracketNodeHtml(sf2, fmt)}
+                </div>
+              </div>
+              <div class="bracket-pairing-fork semi-fork"></div>
+            </div>
+          </div>
         </div>
 
-        <!-- CENTRO DO CAMPO: GRANDE FINAL + 3º LUGAR (JOGO ÚNICO) -->
-        <div class="bracket-center-hub">
-          <div class="bracket-stage-heading final-heading">
-            🏆 Final
-            <span class="bracket-stage-subtag">Jogo Único</span>
-          </div>
-          ${buildBracketNodeHtml(finalTie, fmt, 'final-node-card')}
-
-          ${thirdTie ? `
-            <div class="bracket-third-Place-section">
-              <div class="bracket-stage-heading">
-                🥉 3º e 4º Lugar
+        <!-- COLUNA 3: FINAIS (Grande Final e Disputa de 3º Lugar) -->
+        <div class="bracket-col ltr-col col-finals">
+          <div class="bracket-stage-content finals-content">
+            <!-- GRANDE FINAL -->
+            <div class="bracket-final-wrap">
+              <div class="bracket-stage-heading final-heading">
+                🏆 GRANDE FINAL
                 <span class="bracket-stage-subtag">Jogo Único</span>
               </div>
-              ${buildBracketNodeHtml(thirdTie, fmt, 'third-node-card')}
+              <div class="bracket-final-card-row">
+                ${buildBracketNodeHtml(finalTie, fmt, 'final-node-capsule')}
+                <div class="bracket-final-lead-line"></div>
+              </div>
             </div>
-          ` : ''}
+
+            <!-- 3º LUGAR (BRONZE FINAL) -->
+            ${thirdTie ? `
+              <div class="bracket-third-wrap">
+                <div class="bracket-stage-heading bronze-heading">
+                  🥉 3º LUGAR (Bronze)
+                  <span class="bracket-stage-subtag">Jogo Único</span>
+                </div>
+                ${buildBracketNodeHtml(thirdTie, fmt, 'third-node-capsule')}
+              </div>
+            ` : ''}
+          </div>
         </div>
 
-        <!-- ALA DIREITA DO CHAVEAMENTO (Centro <- Direita) -->
-        <div class="bracket-wing wing-right">
-          <div class="bracket-connector-line"></div>
-
-          <div class="bracket-col col-semi">
-            <div class="bracket-stage-heading">
-              Semifinal 2
-              <span class="bracket-stage-subtag">${stageSubLabel}</span>
-            </div>
-            ${buildBracketNodeHtml(sf2, fmt)}
-          </div>
-
-          ${hasQuarters ? `
-            <div class="bracket-connector-fork fork-right"></div>
-            <div class="bracket-col col-quarter">
-              <div class="bracket-stage-heading">
-                Quartas B
-                <span class="bracket-stage-subtag">${stageSubLabel}</span>
+        <!-- COLUNA 4: WORLD CHAMPION & TROFÉU -->
+        <div class="bracket-col ltr-col col-champion">
+          <div class="bracket-stage-content champion-content">
+            <!-- Pódio do Campeão -->
+            <div class="fifa-champion-podium">
+              <div class="fifa-champion-crown">👑</div>
+              <div class="fifa-champion-label">WORLD CHAMPION</div>
+              <div class="fifa-champion-card ${finalOutcome && finalOutcome.winner ? 'has-champion' : 'pending-champion'}">
+                <div class="fifa-champion-avatar">
+                  ${finalOutcome && finalOutcome.winner ? getPlayerAvatarInnerHtml(finalOutcome.winner) : '<span class="avatar-question-mark">?</span>'}
+                </div>
+                <div class="fifa-champion-name">
+                  ${finalOutcome && finalOutcome.winner ? finalOutcome.winner : 'A DEFINIR'}
+                </div>
               </div>
-              ${buildBracketNodeHtml(qf3, fmt)}
-              ${buildBracketNodeHtml(qf4, fmt)}
             </div>
-          ` : ''}
+
+            <!-- Troféu Dourado FIFA 26 3D -->
+            <div class="fifa-trophy-showcase">
+              <div class="fifa-trophy-glow"></div>
+              <div class="fifa-trophy-img-wrap">
+                <svg class="fifa-trophy-svg" viewBox="0 0 100 140" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <defs>
+                    <linearGradient id="goldGrad1" x1="0%" y1="0%" x2="100%" y2="100%">
+                      <stop offset="0%" stop-color="#fffbeb"/>
+                      <stop offset="25%" stop-color="#fde047"/>
+                      <stop offset="50%" stop-color="#eab308"/>
+                      <stop offset="75%" stop-color="#ca8a04"/>
+                      <stop offset="100%" stop-color="#854d0e"/>
+                    </linearGradient>
+                    <linearGradient id="goldGrad2" x1="0%" y1="100%" x2="100%" y2="0%">
+                      <stop offset="0%" stop-color="#713f12"/>
+                      <stop offset="40%" stop-color="#eab308"/>
+                      <stop offset="70%" stop-color="#fef08a"/>
+                      <stop offset="100%" stop-color="#ca8a04"/>
+                    </linearGradient>
+                    <filter id="trophyShine" x="-20%" y="-20%" width="140%" height="140%">
+                      <feDropShadow dx="0" dy="4" stdDeviation="6" flood-color="#eab308" flood-opacity="0.6"/>
+                    </filter>
+                  </defs>
+                  <circle cx="50" cy="28" r="18" fill="url(#goldGrad1)" filter="url(#trophyShine)" />
+                  <path d="M38 24 C44 18, 56 18, 62 24 C58 32, 42 32, 38 24 Z" fill="#fef08a" opacity="0.7"/>
+                  <path d="M42 34 C46 38, 54 38, 58 34" stroke="#854d0e" stroke-width="2" stroke-linecap="round"/>
+                  <path d="M36 44 C34 32, 38 26, 44 26 C41 34, 43 45, 45 58 Z" fill="url(#goldGrad2)"/>
+                  <path d="M64 44 C66 32, 62 26, 56 26 C59 34, 57 45, 55 58 Z" fill="url(#goldGrad2)"/>
+                  <path d="M42 56 C38 68, 38 84, 43 96 L57 96 C62 84, 62 68, 58 56 Z" fill="url(#goldGrad1)" filter="url(#trophyShine)"/>
+                  <path d="M44 65 C48 74, 54 74, 56 65" stroke="#713f12" stroke-width="2" stroke-linecap="round"/>
+                  <path d="M43 82 C48 90, 53 90, 57 82" stroke="#713f12" stroke-width="2" stroke-linecap="round"/>
+                  <rect x="36" y="96" width="28" height="6" rx="2" fill="#15803d" stroke="#166534" stroke-width="1"/>
+                  <rect x="34" y="102" width="32" height="7" rx="2" fill="url(#goldGrad1)"/>
+                  <rect x="32" y="109" width="36" height="6" rx="2" fill="#15803d" stroke="#166534" stroke-width="1"/>
+                  <rect x="30" y="115" width="40" height="15" rx="3" fill="url(#goldGrad2)" filter="url(#trophyShine)"/>
+                  <text x="50" y="125" font-size="5" font-weight="900" fill="#713f12" text-anchor="middle" letter-spacing="0.5">FIFA 26</text>
+                </svg>
+              </div>
+              <div class="fifa-trophy-badge">
+                <span class="fifa-26-bold">26</span>
+                <span class="fifa-trophy-sub">FIFA WORLD CUP</span>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </div>
