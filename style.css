@@ -185,6 +185,7 @@ body {
   font-weight: 700;
   background: linear-gradient(90deg, var(--accent-cyan), #ffffff);
   -webkit-background-clip: text;
+  background-clip: text;
   -webkit-text-fill-color: transparent;
 }
 
@@ -197,6 +198,7 @@ body {
   text-transform: uppercase;
   background: linear-gradient(180deg, #ffffff 40%, #9cb1d4 100%);
   -webkit-background-clip: text;
+  background-clip: text;
   -webkit-text-fill-color: transparent;
 }
 
@@ -910,6 +912,7 @@ body {
   text-align: center;
   outline: none;
   -moz-appearance: textfield;
+  appearance: textfield;
 }
 
 .score-input::-webkit-outer-spin-button,
@@ -2763,65 +2766,33 @@ body {
   gap: 34px;
 }
 
-/* Linha conectora em bifurcação (Garfo longo) da esquerda para a direita */
-.bracket-pairing-fork {
-  width: 75px;
-  height: calc(100% - 40px);
-  position: relative;
+/* Conectores em SVG Vetorial (Garfos Longos Ultra Nítidos) */
+.bracket-pairing-fork-svg {
+  width: 80px;
+  height: 100%;
   flex-shrink: 0;
   margin-left: 10px;
+  overflow: visible;
+  filter: drop-shadow(0 0 6px rgba(255, 255, 255, 0.2));
 }
 
-.bracket-pairing-fork::before {
-  content: '';
-  position: absolute;
-  top: 22%;
-  bottom: 22%;
-  left: 0;
-  width: 50%;
-  border-top: 2px solid rgba(255, 255, 255, 0.45);
-  border-bottom: 2px solid rgba(255, 255, 255, 0.45);
-  border-right: 2px solid rgba(255, 255, 255, 0.45);
-  border-top-right-radius: 10px;
-  border-bottom-right-radius: 10px;
-  box-shadow: 1px 0 6px rgba(255, 255, 255, 0.12);
+.bracket-pairing-fork-svg.semi-fork-svg {
+  width: 90px;
+  min-height: 240px;
 }
 
-.bracket-pairing-fork::after {
-  content: '';
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  right: 0;
-  height: 2px;
-  background: rgba(255, 255, 255, 0.45);
-  transform: translateY(-50%);
-  box-shadow: 0 0 6px rgba(255, 255, 255, 0.12);
-}
-
-/* Semifinais com linhas ainda mais amplas convergindo na Grande Final */
+/* Semifinais com linhas amplas convergindo na Grande Final */
 .bracket-pairing-block.semi-block {
   width: 100%;
 }
 
 .bracket-pairing-matches.semi-matches {
-  gap: 140px;
+  gap: 130px;
 }
 
 .bracket-semi-slot {
   display: flex;
   align-items: center;
-}
-
-.bracket-pairing-fork.semi-fork {
-  width: 85px;
-  height: calc(100% - 48px);
-}
-
-.bracket-pairing-fork.semi-fork::before {
-  top: 18%;
-  bottom: 18%;
-  width: 52%;
 }
 
 /* Linha de conexão da Grande Final para o Campeão */
@@ -2851,12 +2822,13 @@ body {
 }
 
 /* ==========================================================================
-   Design Minimalista do Confronto (Nó com Cápsulas Individuais + X + Placares)
+   Design Minimalista do Confronto (Nó com Cápsulas Individuais + Placares)
    ========================================================================== */
 .bracket-match-node {
   display: flex;
   flex-direction: column;
   align-items: flex-start;
+  gap: 8px; /* Espaço limpo e sem poluição visual entre os competidores */
   position: relative;
   background: transparent;
   border: none;
@@ -2968,26 +2940,7 @@ body {
   letter-spacing: 0.3px;
 }
 
-/* 2. Marcação de Confronto "X" Centralizado */
-.bracket-vs-row {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 175px;
-  padding: 2px 0;
-}
-
-.bracket-vs-x {
-  font-family: var(--font-display);
-  font-size: 1.05rem;
-  font-weight: 900;
-  color: #64748b;
-  line-height: 1;
-  letter-spacing: 0.5px;
-  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.8);
-}
-
-/* 3. Bloco de Placar à Direita: Dois Placares Empilhados + Soma ao Lado */
+/* 2. Bloco de Placar à Direita: Dois Placares Empilhados + Soma ao Lado */
 .bracket-score-block {
   display: flex;
   align-items: center;
@@ -3016,6 +2969,7 @@ body {
   padding: 0;
   transition: all 0.18s ease;
   -moz-appearance: textfield;
+  appearance: textfield;
 }
 
 .ko-mini-score-input::-webkit-outer-spin-button,
@@ -3064,6 +3018,7 @@ body {
   outline: none;
   transition: all 0.18s ease;
   -moz-appearance: textfield;
+  appearance: textfield;
 }
 
 .ko-single-score-input::-webkit-outer-spin-button,
@@ -3117,6 +3072,7 @@ body {
   outline: none;
   padding: 0;
   -moz-appearance: textfield;
+  appearance: textfield;
 }
 
 .ko-pen-mini-input::-webkit-outer-spin-button,
@@ -3166,16 +3122,91 @@ body {
   height: 44px;
 }
 
-.display-mode-photo_only .bracket-vs-row {
-  width: 48px;
-}
-
 .display-mode-name_only .bracket-avatar-circle {
   display: none;
 }
 
 .display-mode-name_only .bracket-player-capsule {
   padding: 6px 14px;
+}
+
+/* ==========================================================================
+   Pódio e Card Dourado do Campeão Mundial
+   ========================================================================== */
+.fifa-champion-podium {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 24px;
+  text-align: center;
+}
+
+.fifa-champion-crown {
+  font-size: 1.8rem;
+  line-height: 1;
+  filter: drop-shadow(0 2px 8px rgba(234, 179, 8, 0.6));
+  animation: crownFloat 2s ease-in-out infinite alternate;
+}
+
+@keyframes crownFloat {
+  0% { transform: translateY(0); }
+  100% { transform: translateY(-4px); }
+}
+
+.fifa-champion-label {
+  font-family: var(--font-display);
+  font-size: 1.25rem;
+  font-weight: 800;
+  letter-spacing: 2px;
+  color: #fde047;
+  text-transform: uppercase;
+  margin: 4px 0 8px;
+  text-shadow: 0 2px 8px rgba(234, 179, 8, 0.5);
+}
+
+.fifa-champion-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-width: 140px;
+  padding: 10px 18px;
+  background: linear-gradient(145deg, #1f2738, #101522);
+  border: 2px solid #eab308;
+  border-radius: 20px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.7), 0 0 22px rgba(234, 179, 8, 0.35);
+}
+
+.fifa-champion-avatar {
+  width: 54px;
+  height: 54px;
+  border-radius: 14px;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #090c14;
+  border: 2px solid #fde047;
+  color: #fde047;
+  font-family: var(--font-display);
+  font-size: 1.6rem;
+  font-weight: 800;
+  margin-bottom: 6px;
+}
+
+.fifa-champion-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.fifa-champion-name {
+  font-size: 0.92rem;
+  font-weight: 800;
+  color: #ffffff;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
 }
 
 /* Showcase do Troféu Dourado 3D */

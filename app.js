@@ -2255,11 +2255,6 @@ function buildBracketNodeHtml(t, fmt, extraCardClass = '') {
         </div>
       </div>
 
-      <!-- X no meio dos dois jogadores (marcação de confronto minimalista) -->
-      <div class="bracket-vs-row">
-        <span class="bracket-vs-x">X</span>
-      </div>
-
       <!-- Linha do Jogador 2 (Cápsula + Placar(es) + Soma) -->
       <div class="bracket-player-row">
         <div
@@ -2455,7 +2450,9 @@ function renderKnockoutView() {
                   ${buildBracketNodeHtml(qf1, fmt)}
                   ${buildBracketNodeHtml(qf2, fmt)}
                 </div>
-                <div class="bracket-pairing-fork"></div>
+                <svg class="bracket-pairing-fork-svg" viewBox="0 0 80 140" preserveAspectRatio="none">
+                  <path d="M0,35 L40,35 L40,105 L0,105 M40,70 L80,70" fill="none" stroke="rgba(255,255,255,0.45)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                </svg>
               </div>
 
               <!-- Par Inferior (QF3 e QF4 que levam à Semifinal 2) -->
@@ -2464,7 +2461,9 @@ function renderKnockoutView() {
                   ${buildBracketNodeHtml(qf3, fmt)}
                   ${buildBracketNodeHtml(qf4, fmt)}
                 </div>
-                <div class="bracket-pairing-fork"></div>
+                <svg class="bracket-pairing-fork-svg" viewBox="0 0 80 140" preserveAspectRatio="none">
+                  <path d="M0,35 L40,35 L40,105 L0,105 M40,70 L80,70" fill="none" stroke="rgba(255,255,255,0.45)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                </svg>
               </div>
             </div>
           </div>
@@ -2486,7 +2485,9 @@ function renderKnockoutView() {
                   ${buildBracketNodeHtml(sf2, fmt)}
                 </div>
               </div>
-              <div class="bracket-pairing-fork semi-fork"></div>
+              <svg class="bracket-pairing-fork-svg semi-fork-svg" viewBox="0 0 90 280" preserveAspectRatio="none">
+                <path d="M0,45 L45,45 L45,235 L0,235 M45,140 L90,140" fill="none" stroke="rgba(255,255,255,0.45)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+              </svg>
             </div>
           </div>
         </div>
