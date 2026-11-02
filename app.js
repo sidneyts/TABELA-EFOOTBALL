@@ -1184,7 +1184,7 @@ function renderPlayersManager() {
         </div>
         <div class="player-card-info">
           <span class="player-card-name" title="${playerName}">${playerName}</span>
-          <span class="player-card-sub">${playerMatchesCount} partidas • ${hasPhoto ? '📸 Com foto' : 'Sem foto'}</span>
+          <span class="player-card-sub">${playerMatchesCount} jogos • ${hasPhoto ? '📸 Foto anexada' : 'Sem foto'}</span>
         </div>
       </div>
       <div class="player-card-actions">
@@ -1200,7 +1200,7 @@ function renderPlayersManager() {
           type="button" 
           class="btn-remove-player" 
           onclick="confirmRemovePlayer('${playerName}')" 
-          title="Remover ${playerName} do torneio"
+          title="Excluir oficialmente ${playerName} do sistema"
         >
           🗑️
         </button>
@@ -1368,39 +1368,65 @@ function executeAddPlayer(playerName) {
 
 window.confirmRemovePlayer = function(playerName) {
   if (players.length <= 3) {
-    showToast('O campeonato precisa de no mínimo 3 jogadores inscritos.', 'warning');
+    showToast('O sistema precisa manter no mínimo 3 jogadores cadastrados.', 'warning');
     return;
   }
 
-  const playedCount = matches.filter(m => m.homeScore !== null && m.awayScore !== null).length;
-  let message = `Tem certeza de que deseja remover "${playerName}" desta competição atual? A grade de confrontos e a tabela serão recalculadas para os jogadores restantes.`;
-  if (playedCount > 0) {
-    message = `Atenção: A competição atual possui ${playedCount} partidas com resultado registrado. Ao remover "${playerName}", os confrontos deste campeonato em andamento serão reorganizados para os participantes restantes. O histórico de edições passadas na Sala de Troféus permanecerá 100% preservado. (Dica: se mudar de ideia, você pode adicioná-lo de volta pelo botão "+" a qualquer momento).`;
-  }
-
   openConfirmModal({
-    title: `Remover ${playerName}?`,
-    message: message,
-    icon: '⚠️',
-    confirmText: 'Sim, remover',
+    title: `Excluir Usuário Oficialmente?`,
+    message: `Tem certeza de que deseja excluir definitivamente o jogador "${playerName}" do sistema? Esta ação é oficial e definitiva: o cadastro, a foto de perfil e os registros ativos deste usuário serão apagados do banco de dados.`,
+    icon: '🗑️',
+    confirmText: 'Sim, excluir oficialmente',
     cancelText: 'Cancelar',
     onConfirm: () => {
-      // Guarda backup caso o usuário queira desfazer ou restaurar adicionando de volta
-      preRemovalMatchesBackup = JSON.parse(JSON.stringify(matches));
-      preRemovalPlayersBackup = [...players];
-
+      // 1. Remove oficialmente da lista de jogadores do sistema
       players = players.filter(p => p !== playerName);
 
+      // 2. Apaga a foto de perfil definitiva do usuário
+      if (playerPhotos && playerPhotos[playerName]) {
+        delete playerPhotos[playerName];
+      }
+
+      // 3. Remove de backups para que não fique como participante pendente de restauração rápida
+      if (preRemovalPlayersBackup) {
+        preRemovalPlayersBackup = preRemovalPlayersBackup.filter(p => p !== playerName);
+      }
+
+      // 4. Se o usuário atual logado for este excluído, desvincula a identificação
+      if (currentUser && currentUser.toLowerCase() === playerName.toLowerCase()) {
+        currentUser = null;
+        localStorage.removeItem('efootball_current_user');
+      }
+
+      // 5. Recalcula as rodadas do campeonato ativo para os participantes restantes
       if (isExactOriginalFour(players)) {
         matches = JSON.parse(JSON.stringify(DEFAULT_MATCHES_4));
       } else {
         matches = generateRoundRobinSchedule(players);
       }
 
+      // 6. Atualiza o Mata-Mata se o usuário excluído estava nele
+      if (knockoutState && Array.isArray(knockoutState.ties)) {
+        let koChanged = false;
+        knockoutState.ties.forEach(t => {
+          if (t.home === playerName) {
+            t.home = 'BYE (Avança direto)';
+            koChanged = true;
+          }
+          if (t.away === playerName) {
+            t.away = 'BYE (Avança direto)';
+            koChanged = true;
+          }
+        });
+        if (koChanged) {
+          propagateKnockoutBracket();
+        }
+      }
+
       hasCelebrated = false;
       renderApp();
       syncToCloud(true);
-      showToast(`Jogador "${playerName}" removido da competição atual!`, 'info');
+      showToast(`Usuário "${playerName}" foi excluído oficialmente do sistema!`, 'danger');
     }
   });
 };
