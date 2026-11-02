@@ -2871,7 +2871,6 @@ function renderKnockoutView() {
       <div class="fifa-poster-header">
         <div class="fifa-poster-badge">🏆 CHAVEAMENTO OFICIAL 2026</div>
         <h2 class="fifa-poster-title">DOMUM WORLD CUP 2026™</h2>
-        <div class="fifa-poster-subtitle">Mata-Mata dos Amigos • Trajetória da Esquerda para a Direita até a Glória Eterna</div>
       </div>
 
       <div class="pitch-bracket-tree ltr-tree">
