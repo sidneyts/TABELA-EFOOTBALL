@@ -3510,6 +3510,78 @@ function handleQuickAddNewPlayerSubmit() {
   }
 }
 
+function resetAllTournamentScores({ resetLeague = true, resetKnockout = true, clearKnockoutTies = false } = {}) {
+  // 1. Zera placares da Liga (Pontos Corridos)
+  if (resetLeague) {
+    matches.forEach(m => {
+      m.homeScore = null;
+      m.awayScore = null;
+    });
+    preRemovalMatchesBackup = null;
+    preRemovalPlayersBackup = null;
+    hasCelebrated = false;
+    const championBanner = document.getElementById('championBanner');
+    if (championBanner) championBanner.classList.add('hidden');
+  }
+
+  // 2. Zera placares e fases do Mata-Mata
+  if (resetKnockout && knockoutState && Array.isArray(knockoutState.ties)) {
+    if (clearKnockoutTies) {
+      knockoutState.ties = [];
+    } else {
+      const hasQuarters = knockoutState.ties.some(t => t.id && t.id.startsWith('qf'));
+
+      knockoutState.ties.forEach(t => {
+        const isByeHome = t.home && t.home.startsWith('BYE');
+        const isByeAway = t.away && t.away.startsWith('BYE');
+
+        if (t.stageId === 'quarter') {
+          t.leg1Home = isByeAway ? 1 : null;
+          t.leg1Away = isByeHome ? 1 : null;
+          t.leg2Home = (isByeAway || isByeHome) ? 0 : null;
+          t.leg2Away = (isByeAway || isByeHome) ? 0 : null;
+        } else {
+          t.leg1Home = null;
+          t.leg1Away = null;
+          t.leg2Home = null;
+          t.leg2Away = null;
+
+          if (t.stageId === 'semi') {
+            if (hasQuarters) {
+              if (t.id === 'sf1') {
+                t.home = 'Vencedor Quartas 1';
+                t.away = 'Vencedor Quartas 2';
+              } else if (t.id === 'sf2') {
+                t.home = 'Vencedor Quartas 3';
+                t.away = 'Vencedor Quartas 4';
+              }
+            }
+          } else if (t.stageId === 'third') {
+            t.home = 'Perdedor Semifinal 1';
+            t.away = 'Perdedor Semifinal 2';
+          } else if (t.stageId === 'final') {
+            t.home = 'Vencedor Semifinal 1';
+            t.away = 'Vencedor Semifinal 2';
+          }
+        }
+        t.penHome = null;
+        t.penAway = null;
+        t.penaltyWinner = null;
+        t.showPenalties = false;
+      });
+
+      propagateKnockoutBracket();
+    }
+
+    hasCelebratedKnockout = false;
+    const koBanner = document.getElementById('knockoutChampionBanner');
+    if (koBanner) koBanner.classList.add('hidden');
+  }
+
+  renderApp();
+  syncToCloud(true);
+}
+
 function setupEventListeners() {
   // Menu Sanduíche (Gaveta Lateral de Jogadores e Histórico)
   const btnHamburgerMenu = document.getElementById('btnHamburgerMenu');
@@ -3684,21 +3756,31 @@ function setupEventListeners() {
     btnReset.addEventListener('click', () => {
       openConfirmModal({
         title: 'Zerar todo o Campeonato?',
-        message: 'Todos os placares preenchidos e a classificação serão redefinidos para o início em tempo real para todos os jogadores. (Dica: você pode salvar no Histórico antes de zerar!). Deseja continuar?',
+        message: 'Todos os placares da Tabela de Pontos Corridos e do Chaveamento Mata-Mata serão zerados em tempo real para todos os participantes. (Dica: você pode salvar no Histórico antes de zerar!). Deseja continuar?',
         icon: '⚠️',
         confirmText: 'Sim, zerar tudo',
         cancelText: 'Cancelar',
         onConfirm: () => {
-          matches.forEach(m => {
-            m.homeScore = null;
-            m.awayScore = null;
-          });
-          preRemovalMatchesBackup = null;
-          preRemovalPlayersBackup = null;
-          hasCelebrated = false;
-          renderApp();
-          syncToCloud(true);
-          showToast('Campeonato e todos os placares zerados com sucesso!', 'success');
+          resetAllTournamentScores({ resetLeague: true, resetKnockout: true, clearKnockoutTies: false });
+          showToast('Campeonato, tabela e mata-mata zerados com sucesso!', 'success');
+        }
+      });
+    });
+  }
+
+  // Botão dedicado para Zerar apenas o Mata-Mata
+  const btnResetKo = document.getElementById('btnResetKnockout');
+  if (btnResetKo) {
+    btnResetKo.addEventListener('click', () => {
+      openConfirmModal({
+        title: 'Zerar Mata-Mata?',
+        message: 'Todos os placares e vencedores do chaveamento do Mata-Mata serão limpos para reiniciar os confrontos em tempo real. Deseja continuar?',
+        icon: '⚠️',
+        confirmText: 'Sim, zerar mata-mata',
+        cancelText: 'Cancelar',
+        onConfirm: () => {
+          resetAllTournamentScores({ resetLeague: false, resetKnockout: true, clearKnockoutTies: false });
+          showToast('Placares do Mata-Mata zerados com sucesso!', 'success');
         }
       });
     });
