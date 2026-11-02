@@ -189,13 +189,19 @@
               <span class="card-icon">📊</span>
               <div>
                 <h2 class="card-title">Tabela de Classificação</h2>
-                <span class="card-subtitle">Atualizada automaticamente a cada gol</span>
+                <span class="card-subtitle">Atualizada automaticamente a cada gol • Clique com o botão direito sobre um jogador para opções</span>
               </div>
             </div>
-            <div class="progress-pill">
-              <span id="tournamentProgressText">0 / 12 Jogos</span>
-              <div class="progress-bar-bg">
-                <div id="tournamentProgressBar" class="progress-bar-fill" style="width: 0%"></div>
+            <div class="table-header-controls" style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+              <button type="button" id="btnQuickAddPlayerModal" class="btn btn-primary" title="Adicionar jogador de volta ou cadastrar novo">
+                <span class="btn-icon">➕</span>
+                <span>Adicionar Jogador</span>
+              </button>
+              <div class="progress-pill">
+                <span id="tournamentProgressText">0 / 12 Jogos</span>
+                <div class="progress-bar-bg">
+                  <div id="tournamentProgressBar" class="progress-bar-fill" style="width: 0%"></div>
+                </div>
               </div>
             </div>
           </div>
@@ -293,11 +299,22 @@
             </div>
           </div>
 
-          <!-- Filtro de Rodadas -->
-          <div class="round-tabs" id="roundTabs">
-            <button class="tab-btn active" data-filter="all">Todas as Rodadas</button>
-            <button class="tab-btn" data-filter="turno">Turno (Ida)</button>
-            <button class="tab-btn" data-filter="returno">Returno (Volta)</button>
+          <div class="matches-header-actions">
+            <button type="button" id="btnShuffleLeagueSchedule" class="btn btn-shuffle-schedule" title="Sortear nova ordem dos confrontos e rodadas">
+              <span class="btn-icon">🎲</span>
+              <span>Sortear Rodadas</span>
+            </button>
+            <button type="button" id="btnMatchesAddPlayer" class="btn btn-secondary" title="Adicionar jogador à competição ou restaurar jogador anterior">
+              <span class="btn-icon">➕</span>
+              <span>Adicionar Jogador</span>
+            </button>
+
+            <!-- Filtro de Rodadas -->
+            <div class="round-tabs" id="roundTabs">
+              <button class="tab-btn active" data-filter="all">Todas as Rodadas</button>
+              <button class="tab-btn" data-filter="turno">Turno (Ida)</button>
+              <button class="tab-btn" data-filter="returno">Returno (Volta)</button>
+            </div>
           </div>
         </div>
 
@@ -633,6 +650,95 @@
         <button type="button" id="btnCloseUserModal" class="btn btn-secondary">Fechar</button>
       </div>
     </div>
+  </div>
+
+  <!-- Modal Dedicado para Adicionar Jogadores Não Listados ou Novos (Botão +) -->
+  <div id="quickAddPlayerModal" class="modal-overlay hidden" role="dialog" aria-modal="true">
+    <div class="modal-box user-modal-box">
+      <div class="modal-header">
+        <div class="modal-icon-badge gold-icon-badge">➕</div>
+        <div>
+          <h3 class="modal-title">Adicionar Jogador</h3>
+          <p class="modal-subtitle">Inclua amigos ou restaure jogadores anteriores</p>
+        </div>
+      </div>
+
+      <div class="modal-body">
+        <!-- Seção 1: Jogadores Disponíveis / Não Listados (que já jogaram antes ou foram removidos) -->
+        <div id="quickAddAvailableSection" class="quick-add-section">
+          <label class="user-modal-section-label">Jogadores Anteriores / Não Listados nesta Competição:</label>
+          <div id="quickAddAvailableList" class="quick-add-available-grid">
+            <!-- Renderizado dinamicamente via JS -->
+          </div>
+        </div>
+
+        <div class="user-modal-divider" id="quickAddDivider">
+          <span>ou cadastre um novo jogador</span>
+        </div>
+
+        <!-- Seção 2: Cadastrar Novo Jogador por Nome -->
+        <form id="formQuickAddNewPlayer" class="quick-add-new-form" onsubmit="return false;">
+          <label class="user-modal-section-label" for="inputQuickPlayerName">Novo Jogador:</label>
+          <div style="display: flex; gap: 8px;">
+            <input
+              type="text"
+              id="inputQuickPlayerName"
+              class="text-input custom-user-input"
+              placeholder="Nome do jogador (ex: Carlos)..."
+              maxlength="20"
+              autocomplete="off"
+            />
+            <button type="button" id="btnSubmitQuickAddPlayer" class="btn btn-primary">
+              <span>➕ Adicionar</span>
+            </button>
+          </div>
+        </form>
+      </div>
+
+      <div class="modal-actions">
+        <button type="button" id="btnCloseQuickAddModal" class="btn btn-secondary">Fechar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Menu de Contexto Customizado ao Clicar com Botão Direito no Jogador -->
+  <div id="playerContextMenu" class="player-context-menu hidden" role="menu">
+    <div class="context-menu-header">
+      <div class="context-menu-avatar" id="contextMenuAvatar">👤</div>
+      <div class="context-menu-info">
+        <div class="context-menu-title" id="contextMenuPlayerName">Jogador</div>
+        <div class="context-menu-sub">Opções da Competição</div>
+      </div>
+    </div>
+    <div class="context-menu-divider"></div>
+    <button type="button" class="context-menu-item item-danger" id="contextMenuBtnRemovePlayer">
+      <span class="context-item-icon">🗑️</span>
+      <span class="context-item-text">Remover da competição</span>
+    </button>
+    <button type="button" class="context-menu-item" id="contextMenuBtnIdentify">
+      <span class="context-item-icon">👤</span>
+      <span class="context-item-text">Acessar como este jogador</span>
+    </button>
+    <button type="button" class="context-menu-item" id="contextMenuBtnChangePhoto">
+      <span class="context-item-icon">📷</span>
+      <span class="context-item-text">Alterar foto do perfil</span>
+    </button>
+  </div>
+
+  <!-- Botão Flutuante de Curtida na Lateral Direita (Limite de 1 clique/seg) -->
+  <div id="floatingLikeContainer" class="floating-like-container">
+    <div id="likeFloatingParticles" class="like-particles-area"></div>
+    <button
+      type="button"
+      id="btnFloatingLike"
+      class="floating-like-btn"
+      title="Deixe sua curtida no campeonato! (Máx. 1 por segundo)"
+    >
+      <span class="like-heart-icon">❤️</span>
+      <span id="floatingLikeCount" class="like-count-value">0</span>
+      <span class="like-label-text">Curtir</span>
+      <span id="likeCooldownBar" class="like-cooldown-bar"></span>
+    </button>
   </div>
 
   <!-- Pop-up Dedicado de Notificação / Toast (Substitui alert()) -->

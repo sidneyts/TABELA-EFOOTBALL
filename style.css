@@ -3033,3 +3033,394 @@ body {
 .btn-pitch-penalties:hover {
   background: #fde68a;
 }
+
+/* ==========================================================================
+   Ações do Cabeçalho de Jogos e Rodadas (Sortear Ordem)
+   ========================================================================== */
+.matches-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.btn-shuffle-schedule {
+  background: linear-gradient(135deg, #10b981, #059669);
+  color: #ffffff;
+  font-weight: 700;
+  box-shadow: 0 4px 14px rgba(16, 185, 129, 0.3);
+  transition: all 0.2s ease;
+}
+
+.btn-shuffle-schedule:hover {
+  background: linear-gradient(135deg, #34d399, #10b981);
+  box-shadow: 0 6px 18px rgba(16, 185, 129, 0.45);
+  transform: translateY(-1px);
+}
+
+/* ==========================================================================
+   Botão Flutuante de Curtida na Lateral Direita (Máx. 1 clique por segundo)
+   ========================================================================== */
+.floating-like-container {
+  position: fixed;
+  right: 22px;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 990;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.floating-like-btn {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 14px 12px 12px;
+  min-width: 68px;
+  background: linear-gradient(145deg, rgba(26, 36, 64, 0.95), rgba(13, 19, 36, 0.95));
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 0, 119, 0.35);
+  border-radius: 36px;
+  color: #ffffff;
+  cursor: pointer;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.4), 0 0 16px rgba(255, 0, 119, 0.25);
+  transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275), box-shadow 0.2s ease, border-color 0.2s ease;
+  user-select: none;
+  overflow: hidden;
+}
+
+.floating-like-btn:hover {
+  transform: scale(1.06);
+  border-color: rgba(255, 0, 119, 0.7);
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.5), 0 0 24px rgba(255, 0, 119, 0.45);
+}
+
+.floating-like-btn:active {
+  transform: scale(0.96);
+}
+
+.floating-like-btn.on-cooldown {
+  opacity: 0.88;
+  cursor: not-allowed;
+}
+
+.like-heart-icon {
+  font-size: 1.65rem;
+  line-height: 1;
+  display: inline-block;
+  transition: transform 0.2s ease;
+  filter: drop-shadow(0 2px 6px rgba(255, 0, 119, 0.4));
+}
+
+.floating-like-btn:hover .like-heart-icon {
+  transform: scale(1.15);
+}
+
+.floating-like-btn.heart-bounce .like-heart-icon {
+  animation: heartPop 0.4s ease-out;
+}
+
+@keyframes heartPop {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.4) rotate(-10deg); }
+  75% { transform: scale(1.2) rotate(10deg); }
+  100% { transform: scale(1) rotate(0deg); }
+}
+
+.like-count-value {
+  font-family: var(--font-display);
+  font-size: 1.35rem;
+  font-weight: 700;
+  line-height: 1;
+  color: #ffffff;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.6);
+}
+
+.like-label-text {
+  font-size: 0.68rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--accent-pink);
+  line-height: 1;
+}
+
+.like-cooldown-bar {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  height: 3px;
+  width: 0%;
+  background: linear-gradient(90deg, #ff0077, #ffbe1a);
+  border-radius: 99px;
+  pointer-events: none;
+}
+
+.like-cooldown-bar.cooldown-active {
+  width: 100%;
+  transition: width 1s linear;
+}
+
+/* Área de Partículas Flutuantes de Curtida */
+.like-particles-area {
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 120px;
+  height: 160px;
+  pointer-events: none;
+  overflow: visible;
+}
+
+.like-floating-particle {
+  position: absolute;
+  bottom: 0;
+  font-weight: 800;
+  font-size: 1rem;
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  white-space: nowrap;
+  animation: likeFloatUp 1.2s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  pointer-events: none;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.8), 0 0 10px rgba(255, 0, 119, 0.8);
+}
+
+@keyframes likeFloatUp {
+  0% {
+    opacity: 0;
+    transform: translateY(10px) scale(0.6);
+  }
+  20% {
+    opacity: 1;
+    transform: translateY(-20px) scale(1.15);
+  }
+  80% {
+    opacity: 0.9;
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-90px) scale(0.85);
+  }
+}
+
+.shake-cooldown {
+  animation: likeShake 0.3s ease-in-out;
+}
+
+@keyframes likeShake {
+  0%, 100% { transform: translateY(-50%) translateX(0); }
+  25% { transform: translateY(-50%) translateX(-4px); }
+  75% { transform: translateY(-50%) translateX(4px); }
+}
+
+@media (max-width: 768px) {
+  .floating-like-container {
+    right: 12px;
+    top: auto;
+    bottom: 20px;
+    transform: none;
+  }
+  .shake-cooldown {
+    animation: likeShakeMobile 0.3s ease-in-out;
+  }
+  @keyframes likeShakeMobile {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-4px); }
+    75% { transform: translateX(4px); }
+  }
+}
+
+/* ==========================================================================
+   Menu de Contexto Customizado (Botão Direito no Jogador dentro da Partida/Tabela)
+   ========================================================================== */
+.player-context-menu {
+  position: fixed;
+  z-index: 10000;
+  background: rgba(14, 21, 40, 0.97);
+  backdrop-filter: blur(16px);
+  border: 1px solid rgba(0, 240, 255, 0.4);
+  border-radius: var(--radius-md);
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.75), 0 0 25px rgba(0, 240, 255, 0.25);
+  min-width: 230px;
+  padding: 8px 6px;
+  animation: contextMenuPop 0.16s cubic-bezier(0.16, 1, 0.3, 1);
+  user-select: none;
+}
+
+@keyframes contextMenuPop {
+  0% { opacity: 0; transform: scale(0.92); }
+  100% { opacity: 1; transform: scale(1); }
+}
+
+.context-menu-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+}
+
+.context-menu-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: 2px solid var(--accent-cyan);
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  background: #1e293b;
+  color: #ffffff;
+  flex-shrink: 0;
+}
+
+.context-menu-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.context-menu-info {
+  min-width: 0;
+}
+
+.context-menu-title {
+  font-weight: 800;
+  font-size: 0.96rem;
+  color: #ffffff;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.context-menu-sub {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+}
+
+.context-menu-divider {
+  height: 1px;
+  background: rgba(255, 255, 255, 0.1);
+  margin: 6px 4px;
+}
+
+.context-menu-item {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 12px;
+  border: none;
+  background: transparent;
+  color: var(--text-main);
+  font-family: var(--font-body);
+  font-size: 0.85rem;
+  font-weight: 600;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  text-align: left;
+}
+
+.context-menu-item:hover {
+  background: rgba(0, 240, 255, 0.14);
+  color: var(--accent-cyan);
+}
+
+.context-menu-item.item-danger {
+  color: #ff4d6d;
+}
+
+.context-menu-item.item-danger:hover {
+  background: rgba(255, 77, 109, 0.18);
+  color: #ff3355;
+}
+
+.team-box[data-player-name],
+.player-cell[data-player-name] {
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.team-box[data-player-name]:hover {
+  background: rgba(0, 240, 255, 0.12);
+  border-color: rgba(0, 240, 255, 0.5);
+}
+
+/* Modal Rápido de Adicionar Jogadores (Botão +) */
+.quick-add-available-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 220px;
+  overflow-y: auto;
+  margin-top: 8px;
+  padding-right: 4px;
+}
+
+.quick-add-player-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  background: rgba(20, 30, 56, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: var(--radius-sm);
+  padding: 8px 12px;
+  transition: all 0.2s ease;
+}
+
+.quick-add-player-row:hover {
+  border-color: rgba(0, 240, 255, 0.35);
+  background: rgba(24, 38, 70, 0.85);
+}
+
+.quick-add-player-info {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.quick-add-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: 2px solid var(--accent-cyan);
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  background: #1e293b;
+  color: #ffffff;
+  flex-shrink: 0;
+}
+
+.quick-add-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.quick-add-name {
+  font-weight: 700;
+  color: #ffffff;
+  font-size: 0.92rem;
+}
+
+.quick-add-empty {
+  font-size: 0.84rem;
+  color: var(--text-muted);
+  background: rgba(255, 255, 255, 0.04);
+  padding: 12px;
+  border-radius: var(--radius-sm);
+  text-align: center;
+}

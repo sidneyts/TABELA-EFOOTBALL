@@ -22,6 +22,7 @@ const STORAGE_HISTORY_KEY = 'efootball_league_history_v1';
 const STORAGE_KNOCKOUT_KEY = 'efootball_knockout_v1';
 const STORAGE_PHOTOS_KEY = 'efootball_player_photos_v1';
 const STORAGE_ACTIVE_TAB_KEY = 'efootball_active_tab_v1';
+const STORAGE_LIKES_KEY = 'efootball_likes_count_v1';
 
 // Lista de jogadores inicial
 const INITIAL_PLAYERS = ['Sidney', 'Miguel', 'Gabriel', 'Pedro'];
@@ -65,6 +66,12 @@ let lastCompetitionTab = 'tournament'; // 'tournament' ou 'knockout'
 let hasCelebrated = false;
 let hasCelebratedKnockout = false;
 let pendingSaveMode = 'league'; // 'league' ou 'knockout'
+
+// Contador de Curtidas com Limite de 1 clique/segundo
+let totalLikes = 0;
+let lastLikeTimestamp = 0;
+const LIKE_COOLDOWN_MS = 1000;
+let likeCooldownTimer = null;
 
 // Instâncias do Firebase
 let db = null;
@@ -174,6 +181,14 @@ function loadLocalBackup() {
       lastCompetitionTab = storedTab;
     }
   }
+
+  const storedLikes = localStorage.getItem(STORAGE_LIKES_KEY);
+  if (storedLikes) {
+    const parsedLikes = parseInt(storedLikes, 10);
+    if (!isNaN(parsedLikes)) {
+      totalLikes = parsedLikes;
+    }
+  }
 }
 
 function normalizeKnockoutState(ko) {
@@ -222,6 +237,7 @@ function saveLocalBackup() {
   localStorage.setItem(STORAGE_HISTORY_KEY, JSON.stringify(tournamentHistory));
   localStorage.setItem(STORAGE_KNOCKOUT_KEY, JSON.stringify(knockoutState));
   localStorage.setItem(STORAGE_PHOTOS_KEY, JSON.stringify(playerPhotos));
+  localStorage.setItem(STORAGE_LIKES_KEY, totalLikes.toString());
 }
 
 /* ==========================================================================
@@ -288,6 +304,11 @@ function initFirebaseRealtime() {
           }
         }
 
+        if (typeof cloudData.likes === 'number') {
+          totalLikes = cloudData.likes;
+          updateLikeDisplay();
+        }
+
         if (cloudData.lastUpdatedBy) {
           lastUpdatedBy = cloudData.lastUpdatedBy;
         }
@@ -348,6 +369,7 @@ function syncToCloud(immediate = false) {
       history: tournamentHistory,
       knockout: knockoutState,
       playerPhotos: playerPhotos,
+      likes: totalLikes,
       updatedAt: firebase.firestore.FieldValue.serverTimestamp()
     };
     if (currentUser) {
@@ -466,6 +488,45 @@ function generateRoundRobinSchedule(playerList) {
   });
 
   return allMatches;
+}
+
+/* ==========================================================================
+   Sorteio da Ordem das Rodadas e Jogos (Modo Pontos Corridos)
+   ========================================================================== */
+function handleShuffleLeagueSchedule() {
+  if (players.length < 2) {
+    showToast('É necessário ter pelo menos 2 jogadores para sortear a ordem dos jogos.', 'warning');
+    return;
+  }
+
+  const hasPlayedMatches = matches.some(m => m.homeScore !== null && m.awayScore !== null && !isNaN(m.homeScore) && !isNaN(m.awayScore));
+
+  if (hasPlayedMatches) {
+    openConfirmModal({
+      title: 'Sortear Ordem dos Jogos?',
+      message: 'Já existem partidas com placar registrado. Ao sortear uma nova ordem para os jogos, todos os confrontos serão reorganizados e os placares atuais serão reiniciados. Deseja prosseguir com o sorteio?',
+      icon: '🎲',
+      confirmText: 'Sim, sortear nova ordem',
+      cancelText: 'Cancelar',
+      onConfirm: () => {
+        executeShuffleLeagueSchedule();
+      }
+    });
+  } else {
+    executeShuffleLeagueSchedule();
+  }
+}
+
+function executeShuffleLeagueSchedule() {
+  // Embaralha aleatoriamente a lista de jogadores para gerar nova distribuição de confrontos e rodadas
+  const shuffledPlayers = shuffleArray(players);
+  matches = generateRoundRobinSchedule(shuffledPlayers);
+  hasCelebrated = false;
+
+  renderApp();
+  syncToCloud(true);
+  showToast('🎲 Nova ordem dos confrontos e rodadas sorteada com sucesso!', 'success');
+  triggerConfetti();
 }
 
 /* ==========================================================================
@@ -688,7 +749,7 @@ function renderStandingsTable(standings) {
         <span class="pos-badge ${posBadgeClass}">${pos}</span>
       </td>
       <td>
-        <div class="player-cell">
+        <div class="player-cell" data-player-name="${player.name}" title="Clique com o botão direito para opções do jogador">
           <div class="player-avatar" style="overflow:hidden;">${avatarInner}</div>
           <span class="player-name-text">${player.name}${youBadgeHtml}</span>
         </div>
@@ -849,7 +910,7 @@ function renderMatches() {
         <div class="match-item ${statusClass} ${userMatchClass}" data-match-id="${m.id}">
           <div class="match-row">
             <!-- Time Mandante -->
-            <div class="team-box team-home ${homeWinnerClass}">
+            <div class="team-box team-home ${homeWinnerClass}" data-player-name="${m.home}" title="Clique com o botão direito para opções de ${m.home}">
               <span class="team-name" title="${m.home}">${m.home}</span>
             </div>
 
@@ -889,7 +950,7 @@ function renderMatches() {
             </div>
 
             <!-- Time Visitante -->
-            <div class="team-box team-away ${awayWinnerClass}">
+            <div class="team-box team-away ${awayWinnerClass}" data-player-name="${m.away}" title="Clique com o botão direito para opções de ${m.away}">
               <span class="team-name" title="${m.away}">${m.away}</span>
             </div>
           </div>
@@ -2096,7 +2157,7 @@ function buildBracketNodeHtml(t, fmt, extraCardClass = '') {
   return `
     <div class="bracket-node-card ${extraCardClass}">
       <!-- Competidor 1 (Casa / Topo) -->
-      <div class="bracket-team-slot ${homeWinner}">
+      <div class="bracket-team-slot ${homeWinner}" data-player-name="${t.home}" title="Clique com o botão direito para opções de ${t.home}">
         <div class="bracket-player-ident" title="${t.home} (Clique na foto para enviar/trocar)">
           <div class="bracket-avatar-circle" onclick="triggerPlayerPhotoUpload('${t.home}')">
             ${homeAvatar}
@@ -2168,7 +2229,7 @@ function buildBracketNodeHtml(t, fmt, extraCardClass = '') {
       <div class="bracket-slot-divider"></div>
 
       <!-- Competidor 2 (Visitante / Baixo) -->
-      <div class="bracket-team-slot ${awayWinner}">
+      <div class="bracket-team-slot ${awayWinner}" data-player-name="${t.away}" title="Clique com o botão direito para opções de ${t.away}">
         <div class="bracket-player-ident" title="${t.away} (Clique na foto para enviar/trocar)">
           <div class="bracket-avatar-circle" onclick="triggerPlayerPhotoUpload('${t.away}')">
             ${awayAvatar}
@@ -2989,6 +3050,300 @@ function closeHamburgerDrawer() {
   if (backdrop) backdrop.classList.add('hidden');
 }
 
+/* ==========================================================================
+   Botão Flutuante de Curtida na Lateral Direita (Máx. 1 clique por segundo)
+   ========================================================================== */
+function updateLikeDisplay() {
+  const countEl = document.getElementById('floatingLikeCount');
+  if (countEl) {
+    countEl.textContent = totalLikes;
+  }
+}
+
+function initFloatingLikeButton() {
+  const btn = document.getElementById('btnFloatingLike');
+  if (!btn) return;
+
+  btn.addEventListener('click', handleFloatingLikeClick);
+  updateLikeDisplay();
+}
+
+function handleFloatingLikeClick() {
+  const now = Date.now();
+  const timeSinceLastLike = now - lastLikeTimestamp;
+
+  if (timeSinceLastLike < LIKE_COOLDOWN_MS) {
+    // Cooldown de 1 segundo ativo: feedback sutil de espera
+    const btn = document.getElementById('btnFloatingLike');
+    if (btn) {
+      btn.classList.remove('shake-cooldown');
+      void btn.offsetWidth;
+      btn.classList.add('shake-cooldown');
+    }
+    return;
+  }
+
+  lastLikeTimestamp = now;
+
+  // Incremento local imediato
+  totalLikes++;
+  localStorage.setItem(STORAGE_LIKES_KEY, totalLikes.toString());
+  updateLikeDisplay();
+
+  // Efeitos visuais
+  spawnLikeParticle();
+  triggerLikeHeartBounce();
+  startLikeCooldownTimer();
+
+  // Sincronização atômica em tempo real com Firebase Firestore
+  if (tournamentDocRef && isCloudConnected && typeof firebase !== 'undefined' && firebase.firestore) {
+    tournamentDocRef.set({
+      likes: firebase.firestore.FieldValue.increment(1)
+    }, { merge: true }).catch(err => {
+      console.warn('Erro ao sincronizar curtida no Firestore:', err);
+    });
+  }
+}
+
+function triggerLikeHeartBounce() {
+  const btn = document.getElementById('btnFloatingLike');
+  if (!btn) return;
+  btn.classList.remove('heart-bounce');
+  void btn.offsetWidth;
+  btn.classList.add('heart-bounce');
+  setTimeout(() => {
+    btn.classList.remove('heart-bounce');
+  }, 450);
+}
+
+function startLikeCooldownTimer() {
+  const btn = document.getElementById('btnFloatingLike');
+  const bar = document.getElementById('likeCooldownBar');
+  if (btn) btn.classList.add('on-cooldown');
+
+  if (bar) {
+    bar.classList.remove('cooldown-active');
+    bar.style.width = '100%';
+    bar.style.transition = 'none';
+    void bar.offsetWidth;
+    bar.style.transition = 'width 1000ms linear';
+    bar.style.width = '0%';
+  }
+
+  if (likeCooldownTimer) clearTimeout(likeCooldownTimer);
+  likeCooldownTimer = setTimeout(() => {
+    if (btn) btn.classList.remove('on-cooldown');
+    if (bar) {
+      bar.style.transition = 'none';
+      bar.style.width = '0%';
+    }
+  }, LIKE_COOLDOWN_MS);
+}
+
+function spawnLikeParticle() {
+  const area = document.getElementById('likeFloatingParticles');
+  if (!area) return;
+
+  const particle = document.createElement('div');
+  particle.className = 'like-floating-particle';
+
+  const emojis = ['❤️', '🔥', '⚽', '👏', '💖'];
+  const chosenEmoji = emojis[Math.floor(Math.random() * emojis.length)];
+  particle.innerHTML = `<span>+1</span> <span>${chosenEmoji}</span>`;
+
+  // Variação horizontal aleatória para efeito orgânico
+  const randomX = Math.floor(Math.random() * 50) - 25;
+  particle.style.left = `calc(50% + ${randomX}px)`;
+
+  area.appendChild(particle);
+
+  setTimeout(() => {
+    if (particle && particle.parentNode) {
+      particle.parentNode.removeChild(particle);
+    }
+  }, 1250);
+}
+
+/* ==========================================================================
+   Menu de Contexto do Jogador (Botão Direito dentro da Partida/Tabela)
+   & Modal Rápido de Adicionar Jogadores (Botão +)
+   ========================================================================== */
+let activeContextPlayer = null;
+
+function openPlayerContextMenu(x, y, playerName) {
+  if (!playerName || playerName.startsWith('BYE') || playerName.startsWith('Vencedor') || playerName.startsWith('Perdedor') || playerName === 'A definir') {
+    return;
+  }
+  activeContextPlayer = playerName;
+
+  const menu = document.getElementById('playerContextMenu');
+  const nameEl = document.getElementById('contextMenuPlayerName');
+  const avatarEl = document.getElementById('contextMenuAvatar');
+  if (!menu || !nameEl || !avatarEl) return;
+
+  nameEl.textContent = playerName;
+  avatarEl.innerHTML = getPlayerAvatarInnerHtml(playerName);
+
+  // Exibe o menu
+  menu.classList.remove('hidden');
+
+  // Garante que o menu não saia da tela
+  const menuWidth = 230;
+  const menuHeight = 180;
+  const maxX = window.innerWidth - menuWidth - 12;
+  const maxY = window.innerHeight - menuHeight - 12;
+  const posX = Math.min(Math.max(10, x), Math.max(10, maxX));
+  const posY = Math.min(Math.max(10, y), Math.max(10, maxY));
+
+  menu.style.left = `${posX}px`;
+  menu.style.top = `${posY}px`;
+}
+
+function closePlayerContextMenu() {
+  const menu = document.getElementById('playerContextMenu');
+  if (menu) menu.classList.add('hidden');
+  activeContextPlayer = null;
+}
+
+function getUnenrolledPlayers() {
+  const allKnown = new Set(INITIAL_PLAYERS);
+  // Adiciona do cache de fotos
+  if (playerPhotos && typeof playerPhotos === 'object') {
+    Object.keys(playerPhotos).forEach(name => {
+      if (name && !name.startsWith('__')) allKnown.add(name);
+    });
+  }
+  // Adiciona do histórico de campeonatos
+  if (Array.isArray(tournamentHistory)) {
+    tournamentHistory.forEach(h => {
+      if (h.champion && h.champion !== '-' && !h.champion.startsWith('BYE')) allKnown.add(h.champion);
+      if (h.runnerUp && h.runnerUp !== '-' && !h.runnerUp.startsWith('BYE')) allKnown.add(h.runnerUp);
+      if (h.thirdPlace && h.thirdPlace !== '-' && !h.thirdPlace.startsWith('BYE')) allKnown.add(h.thirdPlace);
+      if (Array.isArray(h.standingsSnapshot)) {
+        h.standingsSnapshot.forEach(p => {
+          if (p.name && !p.name.startsWith('BYE')) allKnown.add(p.name);
+        });
+      }
+    });
+  }
+
+  // Filtra apenas jogadores que NÃO estão atualmente na competição ativa
+  const currentSet = new Set(players.map(p => p.toLowerCase()));
+  return Array.from(allKnown).filter(name => !currentSet.has(name.toLowerCase()));
+}
+
+function openQuickAddPlayerModal() {
+  const modal = document.getElementById('quickAddPlayerModal');
+  const listEl = document.getElementById('quickAddAvailableList');
+  const input = document.getElementById('inputQuickPlayerName');
+  if (!modal || !listEl) return;
+
+  if (input) input.value = '';
+
+  const unenrolled = getUnenrolledPlayers();
+  if (unenrolled.length === 0) {
+    listEl.innerHTML = `
+      <div class="quick-add-empty">
+        Todos os jogadores anteriores já estão inscritos nesta competição.
+      </div>
+    `;
+  } else {
+    listEl.innerHTML = '';
+    unenrolled.forEach(name => {
+      const row = document.createElement('div');
+      row.className = 'quick-add-player-row';
+      row.innerHTML = `
+        <div class="quick-add-player-info">
+          <div class="quick-add-avatar">${getPlayerAvatarInnerHtml(name)}</div>
+          <span class="quick-add-name">${name}</span>
+        </div>
+        <button type="button" class="btn btn-primary btn-sm" onclick="quickEnrollPlayer('${name}')">
+          <span>➕ Adicionar de volta</span>
+        </button>
+      `;
+      listEl.appendChild(row);
+    });
+  }
+
+  modal.classList.remove('hidden');
+  modal.onclick = (e) => {
+    if (e.target === modal) closeQuickAddPlayerModal();
+  };
+}
+
+function closeQuickAddPlayerModal() {
+  const modal = document.getElementById('quickAddPlayerModal');
+  if (modal) modal.classList.add('hidden');
+}
+
+window.quickEnrollPlayer = function(playerName) {
+  if (players.includes(playerName)) {
+    showToast(`"${playerName}" já está no campeonato.`, 'info');
+    closeQuickAddPlayerModal();
+    return;
+  }
+
+  const playedCount = matches.filter(m => m.homeScore !== null && m.awayScore !== null).length;
+  if (playedCount > 0) {
+    openConfirmModal({
+      title: 'Adicionar à Competição em Andamento?',
+      message: `O campeonato já tem ${playedCount} partidas com resultado registrado. Adicionar "${playerName}" irá reorganizar as rodadas e reiniciar os placares. Deseja continuar?`,
+      icon: '➕',
+      confirmText: 'Sim, adicionar',
+      cancelText: 'Cancelar',
+      onConfirm: () => {
+        executeAddPlayer(playerName);
+        closeQuickAddPlayerModal();
+      }
+    });
+  } else {
+    executeAddPlayer(playerName);
+    closeQuickAddPlayerModal();
+  }
+};
+
+function handleQuickAddNewPlayerSubmit() {
+  const input = document.getElementById('inputQuickPlayerName');
+  if (!input) return;
+  const rawName = input.value.trim();
+  if (!rawName) {
+    showToast('Digite o nome do jogador para adicionar.', 'warning');
+    input.focus();
+    return;
+  }
+
+  if (players.some(p => p.toLowerCase() === rawName.toLowerCase())) {
+    showToast(`O jogador "${rawName}" já está na competição!`, 'warning');
+    input.focus();
+    return;
+  }
+
+  if (players.length >= 16) {
+    showToast('Limite máximo de 16 participantes atingido!', 'warning');
+    return;
+  }
+
+  const playedCount = matches.filter(m => m.homeScore !== null && m.awayScore !== null).length;
+  if (playedCount > 0) {
+    openConfirmModal({
+      title: 'Adicionar Novo Jogador à Competição?',
+      message: `O campeonato já tem ${playedCount} partidas com resultado. Adicionar "${rawName}" irá gerar uma nova grade e atualizar em tempo real para todos. Deseja continuar?`,
+      icon: '➕',
+      confirmText: 'Sim, adicionar',
+      cancelText: 'Cancelar',
+      onConfirm: () => {
+        executeAddPlayer(rawName);
+        input.value = '';
+        closeQuickAddPlayerModal();
+      }
+    });
+  } else {
+    executeAddPlayer(rawName);
+    input.value = '';
+    closeQuickAddPlayerModal();
+  }
+}
+
 function setupEventListeners() {
   // Menu Sanduíche (Gaveta Lateral de Jogadores e Histórico)
   const btnHamburgerMenu = document.getElementById('btnHamburgerMenu');
@@ -3182,6 +3537,12 @@ function setupEventListeners() {
     });
   }
 
+  // Botão de Sortear Ordem dos Jogos (Modo Pontos Corridos)
+  const btnShuffleLeague = document.getElementById('btnShuffleLeagueSchedule');
+  if (btnShuffleLeague) {
+    btnShuffleLeague.addEventListener('click', handleShuffleLeagueSchedule);
+  }
+
   const btnShare = document.getElementById('btnShareWhatsApp');
   if (btnShare) {
     btnShare.addEventListener('click', copyStandingsForWhatsApp);
@@ -3205,6 +3566,98 @@ function setupEventListeners() {
       renderMatches();
     });
   });
+
+  // Context Menu Global Listeners (Botão direito ou toque longo)
+  document.addEventListener('contextmenu', (e) => {
+    const target = e.target.closest('[data-player-name]');
+    if (target) {
+      const name = target.dataset.playerName;
+      if (name && !name.startsWith('BYE') && !name.startsWith('Vencedor') && !name.startsWith('Perdedor') && name !== 'A definir') {
+        e.preventDefault();
+        openPlayerContextMenu(e.clientX, e.clientY, name);
+      }
+    }
+  });
+
+  // Suporte a Toque Longo no Mobile para abrir o menu do jogador
+  let touchTimer = null;
+  document.addEventListener('touchstart', (e) => {
+    const target = e.target.closest('[data-player-name]');
+    if (!target) return;
+    const name = target.dataset.playerName;
+    if (!name || name.startsWith('BYE') || name.startsWith('Vencedor') || name.startsWith('Perdedor') || name === 'A definir') return;
+    touchTimer = setTimeout(() => {
+      const touch = e.touches[0];
+      if (touch) {
+        openPlayerContextMenu(touch.clientX, touch.clientY, name);
+      }
+    }, 600);
+  }, { passive: true });
+
+  document.addEventListener('touchend', () => {
+    if (touchTimer) clearTimeout(touchTimer);
+  });
+  document.addEventListener('touchmove', () => {
+    if (touchTimer) clearTimeout(touchTimer);
+  });
+
+  // Fecha menu de contexto ao clicar fora ou rolar
+  document.addEventListener('click', (e) => {
+    if (!e.target.closest('#playerContextMenu')) {
+      closePlayerContextMenu();
+    }
+  });
+  window.addEventListener('scroll', closePlayerContextMenu, { passive: true });
+
+  // Ações do Menu de Contexto
+  const contextBtnRemove = document.getElementById('contextMenuBtnRemovePlayer');
+  const contextBtnIdentify = document.getElementById('contextMenuBtnIdentify');
+  const contextBtnPhoto = document.getElementById('contextMenuBtnChangePhoto');
+
+  if (contextBtnRemove) {
+    contextBtnRemove.addEventListener('click', () => {
+      const p = activeContextPlayer;
+      closePlayerContextMenu();
+      if (p) confirmRemovePlayer(p);
+    });
+  }
+  if (contextBtnIdentify) {
+    contextBtnIdentify.addEventListener('click', () => {
+      const p = activeContextPlayer;
+      closePlayerContextMenu();
+      if (p) setCurrentUserProfile(p);
+    });
+  }
+  if (contextBtnPhoto) {
+    contextBtnPhoto.addEventListener('click', () => {
+      const p = activeContextPlayer;
+      closePlayerContextMenu();
+      if (p) triggerPlayerPhotoUpload(p);
+    });
+  }
+
+  // Botões do Modal Rápido de Adicionar Jogadores (Botão +)
+  const btnQuickAdd1 = document.getElementById('btnQuickAddPlayerModal');
+  const btnQuickAdd2 = document.getElementById('btnMatchesAddPlayer');
+  const btnCloseQuickAdd = document.getElementById('btnCloseQuickAddModal');
+  const btnSubmitQuickAdd = document.getElementById('btnSubmitQuickAddPlayer');
+  const inputQuickAdd = document.getElementById('inputQuickPlayerName');
+
+  if (btnQuickAdd1) btnQuickAdd1.addEventListener('click', openQuickAddPlayerModal);
+  if (btnQuickAdd2) btnQuickAdd2.addEventListener('click', openQuickAddPlayerModal);
+  if (btnCloseQuickAdd) btnCloseQuickAdd.addEventListener('click', closeQuickAddPlayerModal);
+  if (btnSubmitQuickAdd) btnSubmitQuickAdd.addEventListener('click', handleQuickAddNewPlayerSubmit);
+  if (inputQuickAdd) {
+    inputQuickAdd.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        handleQuickAddNewPlayerSubmit();
+      }
+    });
+  }
+
+  // Inicializa o botão flutuante de curtida na lateral direita
+  initFloatingLikeButton();
 }
 
 document.addEventListener('DOMContentLoaded', init);
